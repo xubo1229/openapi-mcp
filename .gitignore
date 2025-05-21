@@ -1,0 +1,8 @@
+.claude
+.zig-cache
+*~
+bin/
+AUTH.md
+AI-OPTS.md
+CLAUDE.md
+RELEASE.md
