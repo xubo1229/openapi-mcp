@@ -219,7 +219,11 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 						},
 					},
 					IsError:      true,
-					NextSteps:    suggestions,
+					Schema:       inputSchema,
+					Arguments:    args,
+					Examples:     []any{args},
+					Usage:        "call <tool> <json-args>",
+					NextSteps:    []string{"list", "schema <tool>"},
 					OutputFormat: "structured",
 					OutputType:   "json",
 				}, nil
@@ -378,6 +382,11 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			defer resp.Body.Close()
 			respBody, _ := io.ReadAll(resp.Body)
 
+			contentType := resp.Header.Get("Content-Type")
+			isJSON := strings.HasPrefix(contentType, "application/json")
+			isText := strings.HasPrefix(contentType, "text/")
+			isBinary := !isJSON && !isText
+
 			// LLM-friendly error handling for non-2xx responses
 			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 				opSummary := opCopy.Summary
@@ -392,6 +401,51 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 					suggestion = "The resource was not found. Check if the resource ID or path is correct."
 				} else if resp.StatusCode == 400 {
 					suggestion = "Bad request. Check if all required parameters are provided and valid."
+				}
+				// For binary error responses, include base64 and mime type
+				if isBinary {
+					fileBase64 := base64.StdEncoding.EncodeToString(respBody)
+					fileName := "file"
+					if cd := resp.Header.Get("Content-Disposition"); cd != "" {
+						if parts := strings.Split(cd, "filename="); len(parts) > 1 {
+							fileName = strings.Trim(parts[1], `"`)
+						}
+					}
+					errorObj := map[string]any{
+						"type": "api_response",
+						"error": map[string]any{
+							"code":        "http_error",
+							"http_status": resp.StatusCode,
+							"message":     fmt.Sprintf("%s (HTTP %d)", http.StatusText(resp.StatusCode), resp.StatusCode),
+							"details":     "Binary response (see file_base64)",
+							"suggestion":  suggestion,
+							"mime_type":   contentType,
+							"file_base64": fileBase64,
+							"file_name":   fileName,
+							"operation": map[string]any{
+								"id":          opCopy.OperationID,
+								"summary":     opSummary,
+								"description": opDesc,
+							},
+						},
+					}
+					errorJSON, _ := json.MarshalIndent(errorObj, "", "  ")
+					return &mcp.CallToolResult{
+						Content: []mcp.Content{
+							mcp.TextContent{
+								Type: "json",
+								Text: string(errorJSON),
+							},
+						},
+						IsError:      true,
+						Schema:       inputSchema,
+						Arguments:    args,
+						Examples:     []any{args},
+						Usage:        "call <tool> <json-args>",
+						NextSteps:    []string{"list", "schema <tool>"},
+						OutputFormat: "structured",
+						OutputType:   "file",
+					}, nil
 				}
 				errorObj := map[string]any{
 					"type": "api_response",
@@ -424,6 +478,45 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 					NextSteps:    []string{"list", "schema <tool>"},
 					OutputFormat: "structured",
 					OutputType:   "json",
+				}, nil
+			}
+
+			// Handle binary/file responses for success
+			if isBinary && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+				fileBase64 := base64.StdEncoding.EncodeToString(respBody)
+				fileName := "file"
+				if cd := resp.Header.Get("Content-Disposition"); cd != "" {
+					if parts := strings.Split(cd, "filename="); len(parts) > 1 {
+						fileName = strings.Trim(parts[1], `"`)
+					}
+				}
+				resultObj := map[string]any{
+					"type":        "api_response",
+					"http_status": resp.StatusCode,
+					"mime_type":   contentType,
+					"file_base64": fileBase64,
+					"file_name":   fileName,
+					"operation": map[string]any{
+						"id":          opCopy.OperationID,
+						"summary":     opCopy.Summary,
+						"description": opCopy.Description,
+					},
+				}
+				resultJSON, _ := json.MarshalIndent(resultObj, "", "  ")
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{
+						mcp.TextContent{
+							Type: "json",
+							Text: string(resultJSON),
+						},
+					},
+					Schema:       inputSchema,
+					Arguments:    args,
+					Examples:     []any{args},
+					Usage:        "call <tool> <json-args>",
+					NextSteps:    []string{"list", "schema <tool>"},
+					OutputFormat: "structured",
+					OutputType:   "file",
 				}, nil
 			}
 
