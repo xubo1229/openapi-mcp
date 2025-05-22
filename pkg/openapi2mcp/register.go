@@ -377,6 +377,56 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			}
 			defer resp.Body.Close()
 			respBody, _ := io.ReadAll(resp.Body)
+
+			// LLM-friendly error handling for non-2xx responses
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				opSummary := opCopy.Summary
+				if opSummary == "" {
+					opSummary = opCopy.Description
+				}
+				opDesc := opCopy.Description
+				suggestion := "Check the input parameters, authentication, and consult the tool schema. See the OpenAPI documentation for more details."
+				if resp.StatusCode == 401 || resp.StatusCode == 403 {
+					suggestion = "Authentication or authorization failed. Ensure you have provided valid credentials or tokens."
+				} else if resp.StatusCode == 404 {
+					suggestion = "The resource was not found. Check if the resource ID or path is correct."
+				} else if resp.StatusCode == 400 {
+					suggestion = "Bad request. Check if all required parameters are provided and valid."
+				}
+				errorObj := map[string]any{
+					"type": "api_response",
+					"error": map[string]any{
+						"code":        "http_error",
+						"http_status": resp.StatusCode,
+						"message":     fmt.Sprintf("%s (HTTP %d)", http.StatusText(resp.StatusCode), resp.StatusCode),
+						"details":     string(respBody),
+						"suggestion":  suggestion,
+						"operation": map[string]any{
+							"id":          opCopy.OperationID,
+							"summary":     opSummary,
+							"description": opDesc,
+						},
+					},
+				}
+				errorJSON, _ := json.MarshalIndent(errorObj, "", "  ")
+				return &mcp.CallToolResult{
+					Content: []mcp.Content{
+						mcp.TextContent{
+							Type: "json",
+							Text: string(errorJSON),
+						},
+					},
+					IsError:      true,
+					Schema:       inputSchema,
+					Arguments:    args,
+					Examples:     []any{args},
+					Usage:        "call <tool> <json-args>",
+					NextSteps:    []string{"list", "schema <tool>"},
+					OutputFormat: "structured",
+					OutputType:   "json",
+				}, nil
+			}
+
 			// Always format the response as: HTTP <METHOD> <URL>\nStatus: <status>\nResponse:\n<respBody>
 			respText := fmt.Sprintf("HTTP %s %s\nStatus: %d\nResponse:\n%s", opCopy.Method, fullURL, resp.StatusCode, string(respBody))
 			if args["stream"] == true {
