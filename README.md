@@ -53,21 +53,29 @@
 - **Validation**: All tool calls are validated against OpenAPI schemas before execution
 - **Safety Features**: Confirmation required for dangerous operations (PUT/POST/DELETE)
 - **Documentation**: Built-in documentation generation in Markdown or HTML
-- **Agent-Friendly**: Designed specifically for AI agents with structured errors, hints, and examples
+- **AI-Optimized**: Unique features specifically designed to enhance AI agent interactions:
+  - Consistent output structures with OutputFormat and OutputType for reliable parsing
+  - Rich machine-readable schema information with constraints and examples
+  - Streamlined, agent-friendly response format with minimal verbosity
+  - Intelligent error messages with suggestions for correction
+  - Automatic handling of authentication, pagination, and complex data structures
 - **Interactive Client**: Includes an MCP client with readline support and command history
 - **Flexible Configuration**: Environment variables or command-line flags
 - **CI/Testing Support**: Summary options, exit codes, and dry-run mode
 
 ## 🤖 AI Agent Integration
 
-openapi-mcp is designed for seamless integration with AI coding agents, LLMs, and automation tools:
+openapi-mcp is designed for seamless integration with AI coding agents, LLMs, and automation tools with unique features that set it apart from other API-to-tool converters:
 
-- **Structured JSON Responses**: Every response includes `OutputFormat` and `OutputType` fields
-- **Rich Schema Information**: All tools provide detailed parameter constraints and examples
-- **Actionable Error Messages**: Validation errors include detailed information and suggestions
-- **Safety Confirmations**: Standardized confirmation workflow for dangerous operations
-- **Self-Describing API**: The `describe` tool provides complete documentation for all operations
-- **Minimal Verbosity**: No redundant warnings or messages to confuse agents
+- **Structured JSON Responses**: Every response includes `OutputFormat` and `OutputType` fields for consistent parsing
+- **Rich Schema Information**: All tools provide detailed parameter constraints and examples that help AI agents understand API requirements
+- **Actionable Error Messages**: Validation errors include detailed information and suggestions that guide agents toward correct usage
+- **Safety Confirmations**: Standardized confirmation workflow for dangerous operations prevents unintended consequences
+- **Self-Describing API**: The `describe` tool provides complete, machine-readable documentation for all operations
+- **Minimal Verbosity**: No redundant warnings or messages to confuse agents—outputs are optimized for machine consumption
+- **Smart Parameter Handling**: Automatic conversion between OpenAPI parameter types and MCP tool parameters
+- **Contextual Examples**: Every tool includes context-aware examples based on the OpenAPI specification
+- **Intelligent Default Values**: Sensible defaults are provided whenever possible to simplify API usage
 
 ## 🔧 Installation
 
