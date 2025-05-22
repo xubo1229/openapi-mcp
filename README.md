@@ -4,7 +4,7 @@
 
 > **Expose any OpenAPI 3.x API as a robust, agent-friendly MCP tool server in seconds!**
 
-[![Go Version](https://img.shields.io/badge/go-1.20%2B-blue)](https://golang.org/dl/)
+[![Go Version](https://img.shields.io/badge/go-1.21%2B-blue)](https://golang.org/dl/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/jedisct1/openapi-mcp/ci.yml?branch=main)](https://github.com/jedisct1/openapi-mcp/actions)
 [![License](https://img.shields.io/github/license/jedisct1/openapi-mcp)](LICENSE)
 [![GoDoc](https://pkg.go.dev/badge/github.com/jedisct1/openapi-mcp/pkg/openapi2mcp.svg)](https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/openapi2mcp)
@@ -56,7 +56,7 @@ openapi-mcp is designed from the ground up to be robust and easy to use for AI c
 ## ⚡ Quickstart
 
 ### Prerequisites
-- Go 1.20+
+- Go 1.21+
 - An OpenAPI 3.x YAML or JSON file (e.g., `openapi.yaml`)
 
 ### Build
