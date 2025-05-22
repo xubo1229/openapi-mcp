@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Usage - openapi-mcp Documentation</title>
+  <meta name="description" content="Learn how to use openapi-mcp as a Go library in your own applications.">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="../images/favicon.ico" type="image/x-icon">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/atom-one-dark.min.css">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <nav class="navbar">
+        <a href="../" class="logo">
+          <img src="../images/logo.svg" alt="openapi-mcp logo">
+          <span>openapi-mcp</span>
+        </a>
+        
+        <button class="mobile-menu-toggle" aria-label="Toggle menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        
+        <ul class="nav-links">
+          <li><a href="../">Home</a></li>
+          <li><a href="./">Documentation</a></li>
+          <li><a href="../examples/">Examples</a></li>
+          <li><a href="https://github.com/jedisct1/openapi-mcp" target="_blank">GitHub</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Documentation Content -->
+  <div class="container">
+    <div class="docs-container">
+      <!-- Sidebar -->
+      <aside class="docs-sidebar">
+        <h3>Documentation</h3>
+        <ul class="docs-menu">
+          <li><a href="./">Introduction</a></li>
+          <li><a href="./installation.html">Installation</a></li>
+          <li><a href="./quick-start.html">Quick Start</a></li>
+          <li><a href="./authentication.html">Authentication</a></li>
+          <li><a href="./configuration.html">Configuration</a></li>
+          <li><a href="./ai-integration.html">AI Agent Integration</a></li>
+          <li><a href="./output-structure.html">Output Structure</a></li>
+          <li><a href="./safety-features.html">Safety Features</a></li>
+          <li><a href="./library-usage.html" class="active">Library Usage</a></li>
+          <li><a href="./command-line.html">Command-Line Options</a></li>
+          <li><a href="./advanced.html">Advanced Usage</a></li>
+        </ul>
+      </aside>
+      
+      <!-- Main Content -->
+      <main class="docs-content">
+        <h1>Library Usage</h1>
+        
+        <p class="lead">
+          openapi-mcp is not just a CLI tool—it is also a Go module that can be imported by third-party applications to quickly add production-grade MCP server capabilities.
+        </p>
+        
+        <h2>Installation</h2>
+        <p>
+          To use openapi-mcp as a library in your Go project, import it:
+        </p>
+        
+        <pre><code class="language-bash">go get github.com/jedisct1/openapi-mcp/pkg/openapi2mcp</code></pre>
+        
+        <h2>Key Components</h2>
+        <p>
+          The main package to import is <code>github.com/jedisct1/openapi-mcp/pkg/openapi2mcp</code>, which provides several important functions and types:
+        </p>
+        
+        <div class="card mb-4">
+          <h3>Main Functions</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Function</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>LoadOpenAPISpec</code></td>
+                <td>Loads and validates an OpenAPI specification from a file</td>
+              </tr>
+              <tr>
+                <td><code>NewServer</code></td>
+                <td>Creates a new MCP server from an OpenAPI spec</td>
+              </tr>
+              <tr>
+                <td><code>RegisterOpenAPITools</code></td>
+                <td>Registers OpenAPI operations as MCP tools on a server</td>
+              </tr>
+              <tr>
+                <td><code>ServeStdio</code></td>
+                <td>Starts the server in stdio mode</td>
+              </tr>
+              <tr>
+                <td><code>ServeHTTP</code></td>
+                <td>Starts the server in HTTP mode</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <h2>Basic Usage</h2>
+        <p>
+          Here's a simple example of how to use openapi-mcp as a library to create an MCP server:
+        </p>
+        
+        <div class="card mb-4">
+          <pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
+)
+
+func main() {
+	// Load the OpenAPI spec
+	specPath := "openapi.yaml"
+	doc, err := openapi2mcp.LoadOpenAPISpec(specPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load OpenAPI spec: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create a new MCP server
+	srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc)
+
+	// Serve via stdio
+	if err := openapi2mcp.ServeStdio(srv); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to serve: %v\n", err)
+		os.Exit(1)
+	}
+}</code></pre>
+        </div>
+        
+        <p>
+          This code does the following:
+        </p>
+        <ol>
+          <li>Loads and validates an OpenAPI spec file</li>
+          <li>Creates a new MCP server with the spec</li>
+          <li>Starts the server in stdio mode</li>
+        </ol>
+        
+        <h2>HTTP Server Mode</h2>
+        <p>
+          To serve the MCP server over HTTP instead of stdio:
+        </p>
+        
+        <div class="card mb-4">
+          <pre><code class="language-go">// Serve via HTTP
+if err := openapi2mcp.ServeHTTP(srv, ":8080"); err != nil {
+	fmt.Fprintf(os.Stderr, "Failed to serve HTTP: %v\n", err)
+	os.Exit(1)
+}</code></pre>
+        </div>
+        
+        <h2>Customizing Server Options</h2>
+        <p>
+          You can customize the server behavior by setting options:
+        </p>
+        
+        <div class="card mb-4">
+          <pre><code class="language-go">// Create server with options
+srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc, 
+	openapi2mcp.WithAPIKey("your_api_key"),
+	openapi2mcp.WithBaseURL("https://api.example.com"),
+	openapi2mcp.WithConfirmDangerous(false), // Disable confirmation for dangerous operations
+)
+
+// Or set options after creation
+srv.SetAPIKey("your_api_key")
+srv.SetBaseURL("https://api.example.com")
+srv.SetConfirmDangerous(false)</code></pre>
+        </div>
+        
+        <h2>Custom Tool Registration</h2>
+        <p>
+          You can register tools from an OpenAPI spec on an existing MCP server:
+        </p>
+        
+        <div class="card mb-4">
+          <pre><code class="language-go">// Create your own MCP server
+import "github.com/mark3labs/mcp-go/server"
+
+mcpServer := server.New("myapp", "1.0")
+
+// Register custom tools
+mcpServer.RegisterTool("custom_tool", func(args map[string]interface{}) (interface{}, error) {
+	// Custom tool implementation
+	return map[string]interface{}{"result": "custom result"}, nil
+})
+
+// Register OpenAPI tools on the same server
+err := openapi2mcp.RegisterOpenAPITools(mcpServer, doc, options...)</code></pre>
+        </div>
+        
+        <h2>Processing Options</h2>
+        <p>
+          You can filter which operations from the OpenAPI spec are registered as tools:
+        </p>
+        
+        <div class="card mb-4">
+          <h3>Filtering by Tag</h3>
+          <pre><code class="language-go">// Only include operations with the "admin" tag
+srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc,
+	openapi2mcp.WithTag("admin"),
+)</code></pre>
+          
+          <h3>Filtering by Description</h3>
+          <pre><code class="language-go">// Include operations whose description matches a regex
+srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc,
+	openapi2mcp.WithIncludeDescRegex("user|account"),
+)
+
+// Exclude operations whose description matches a regex
+srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc,
+	openapi2mcp.WithExcludeDescRegex("deprecated"),
+)</code></pre>
+        </div>
+        
+        <h2>Authentication</h2>
+        <p>
+          You can configure authentication methods for the API calls:
+        </p>
+        
+        <div class="card mb-4">
+          <pre><code class="language-go">// API Key authentication
+srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc,
+	openapi2mcp.WithAPIKey("your_api_key"),
+)
+
+// Bearer token authentication
+srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc,
+	openapi2mcp.WithBearerToken("your_token"),
+)
+
+// Basic authentication
+srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc,
+	openapi2mcp.WithBasicAuth("username:password"),
+)</code></pre>
+        </div>
+        
+        <h2>Full Example</h2>
+        <p>
+          Here's a more complete example showing various options:
+        </p>
+        
+        <div class="card mb-4">
+          <pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
+)
+
+func main() {
+	// Get API key from environment or use default
+	apiKey := os.Getenv("API_KEY")
+	if apiKey == "" {
+		apiKey = "default_key"
+	}
+
+	// Load the OpenAPI spec
+	specPath := "openapi.yaml"
+	doc, err := openapi2mcp.LoadOpenAPISpec(specPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load OpenAPI spec: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create a new MCP server with options
+	srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc,
+		openapi2mcp.WithAPIKey(apiKey),
+		openapi2mcp.WithBaseURL("https://api.example.com"),
+		openapi2mcp.WithTag("admin"), // Only include operations with the "admin" tag
+		openapi2mcp.WithExcludeDescRegex("deprecated"), // Exclude operations with "deprecated" in the description
+		openapi2mcp.WithExtended(true), // Use extended (human-friendly) output
+	)
+
+	// Determine server mode from args
+	if len(os.Args) > 1 && strings.HasPrefix(os.Args[1], "--http=") {
+		addr := strings.TrimPrefix(os.Args[1], "--http=")
+		fmt.Printf("Starting HTTP server on %s\n", addr)
+		if err := openapi2mcp.ServeHTTP(srv, addr); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to serve HTTP: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Starting stdio server")
+		if err := openapi2mcp.ServeStdio(srv); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to serve stdio: %v\n", err)
+			os.Exit(1)
+		}
+	}
+}</code></pre>
+        </div>
+        
+        <h2>API Reference</h2>
+        <p>
+          For complete API documentation, see the <a href="https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/openapi2mcp" target="_blank">GoDoc</a>.
+        </p>
+        
+        <h2>Next Steps</h2>
+        <p>
+          Now that you understand how to use openapi-mcp as a library, you can:
+        </p>
+        <ul>
+          <li>Explore <a href="./command-line.html">command-line options</a> for the CLI tool</li>
+          <li>Learn about <a href="./advanced.html">advanced usage</a> patterns</li>
+          <li>Check out <a href="../examples/">examples</a> for more implementation ideas</li>
+        </ul>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-column">
+          <h4>openapi-mcp</h4>
+          <p>Transform any OpenAPI 3.x specification into a powerful, AI-friendly MCP tool server in seconds.</p>
+        </div>
+        
+        <div class="footer-column">
+          <h4>Documentation</h4>
+          <ul class="footer-links">
+            <li><a href="./">Getting Started</a></li>
+            <li><a href="./installation.html">Installation</a></li>
+            <li><a href="./configuration.html">Configuration</a></li>
+            <li><a href="./authentication.html">Authentication</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-column">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="../examples/">Examples</a></li>
+            <li><a href="https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/openapi2mcp" target="_blank">API Reference</a></li>
+            <li><a href="https://github.com/jedisct1/openapi-mcp/issues" target="_blank">Issue Tracker</a></li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>Released under the MIT License.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/highlight.min.js"></script>
+  <script src="../js/main.js"></script>
+</body>
+</html>
