@@ -85,6 +85,26 @@
         </ul>
         
         <h2>Integration Patterns</h2>
+
+        <div class="card mb-4">
+          <h3>AI Code Editor Integration</h3>
+          <p>
+            Many AI code editors like Roo Code support MCP tools configuration. You can add openapi-mcp to your editor's configuration:
+          </p>
+          <pre><code class="language-json">{
+    "fastly": {
+        "command": "/opt/bin/openapi-mcp",
+        "args": [
+            "-api-key",
+            "YOUR_API_KEY",
+            "/opt/etc/openapi/fastly-openapi-mcp.yaml"
+        ]
+    }
+}</code></pre>
+          <p>
+            This configuration provides the AI assistant with direct access to the API. The assistant can discover and use API operations without additional setup.
+          </p>
+        </div>
         
         <div class="card mb-4">
           <h3>Stdio Integration (Recommended)</h3>

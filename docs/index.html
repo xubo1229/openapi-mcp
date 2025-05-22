@@ -166,6 +166,24 @@ mcp> describe                          # Get full API documentation</code></pre>
             <li><strong>Self-Describing API:</strong> The <code>describe</code> tool provides complete documentation for all operations</li>
             <li><strong>Minimal Verbosity:</strong> No redundant warnings or messages to confuse agents</li>
           </ul>
+          
+          <h3 class="mt-4">Integration with AI Code Editors</h3>
+          <p>
+            You can easily integrate openapi-mcp with AI code editors that support MCP tools, such as Roo Code:
+          </p>
+          <pre><code class="language-json">{
+    "fastly": {
+        "command": "/opt/bin/openapi-mcp",
+        "args": [
+            "-api-key",
+            "YOUR_API_KEY",
+            "/opt/etc/openapi/fastly-openapi-mcp.yaml"
+        ]
+    }
+}</code></pre>
+          <p>
+            Simply add this configuration to your editor's MCP tools configuration to provide AI assistants with direct access to the API.
+          </p>
         </div>
         
         <div class="col">

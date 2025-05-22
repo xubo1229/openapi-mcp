@@ -147,6 +147,25 @@ Authentication is automatically applied to the appropriate endpoints as defined 
 
 ## 🛠️ Usage Examples
 
+### Integration with AI Code Editors
+
+You can easily integrate openapi-mcp with AI code editors that support MCP tools, such as Roo Code:
+
+```json
+{
+    "fastly": {
+        "command": "/opt/bin/openapi-mcp",
+        "args": [
+            "-api-key",
+            "YOUR_API_KEY",
+            "/opt/etc/openapi/fastly-openapi-mcp.yaml"
+        ]
+    }
+}
+```
+
+Add this configuration to your editor's MCP tools configuration to provide AI assistants with direct access to the API. The assistant can then discover and use the API operations without additional setup.
+
 ### Dry Run (Preview Tools as JSON)
 
 ```sh
