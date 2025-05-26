@@ -22,12 +22,18 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 	recommendedTypes := map[string]bool{"string": true, "integer": true, "boolean": true, "number": true, "array": true, "object": true}
 	recommendedLocations := map[string]bool{"path": true, "query": true, "header": true, "cookie": true}
 
-	for _, op := range ops {
-		if op.OperationID == "" {
-			fmt.Fprintf(os.Stderr, "[ERROR] Operation for path '%s' and method '%s' is missing an operationId.\n", op.Path, op.Method)
-			fmt.Fprintf(os.Stderr, "  Suggestion: Add an 'operationId' field, e.g.\n    %s:\n      %s:\n        operationId: <uniqueOperationId>\n", op.Path, op.Method)
-			failures++
+	// Check for missing operationIds in the original spec
+	for path, pathItem := range doc.Paths {
+		for method, operation := range pathItem.Operations() {
+			if operation.OperationID == "" {
+				fmt.Fprintf(os.Stderr, "[ERROR] Operation for path '%s' and method '%s' is missing an operationId.\n", path, method)
+				fmt.Fprintf(os.Stderr, "  Suggestion: Add an 'operationId' field, e.g.\n    %s:\n      %s:\n        operationId: <uniqueOperationId>\n", path, method)
+				failures++
+			}
 		}
+	}
+
+	for _, op := range ops {
 		if _, ok := toolMap[op.OperationID]; !ok && op.OperationID != "" {
 			fmt.Fprintf(os.Stderr, "[ERROR] Tool '%s' (operationId) is missing from MCP server.\n", op.OperationID)
 			fmt.Fprintf(os.Stderr, "  Suggestion: Ensure the operationId '%s' is unique and present in the OpenAPI spec.\n", op.OperationID)
@@ -66,7 +72,7 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 			}
 			if p.Schema == nil || p.Schema.Value == nil {
 				fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a schema/type.\n", p.Name, op.OperationID)
-				fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'schema' with a 'type', e.g.\n    - name: %s\n      in: %s\n      schema:\n        type: string\n", p.Name, p.In, p.Name, p.In)
+				fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'schema' with a 'type', e.g.\n    - name: %s\n      in: %s\n      schema:\n        type: string\n", p.Name, p.In)
 				failures++
 				continue
 			}
@@ -264,12 +270,19 @@ func SelfTestOpenAPIMCPWithOptions(doc *openapi3.T, toolNames []string, detailed
 	for _, name := range toolNames {
 		toolMap[name] = struct{}{}
 	}
-	for _, op := range ops {
-		if op.OperationID == "" {
-			fmt.Fprintf(os.Stderr, "[ERROR] Operation for path '%s' and method '%s' is missing an operationId.\n", op.Path, op.Method)
-			fmt.Fprintf(os.Stderr, "  Suggestion: Add an 'operationId' field, e.g.\n    %s:\n      %s:\n        operationId: <uniqueOperationId>\n", op.Path, op.Method)
-			failures++
+
+	// Check for missing operationIds in the original spec
+	for path, pathItem := range doc.Paths {
+		for method, operation := range pathItem.Operations() {
+			if operation.OperationID == "" {
+				fmt.Fprintf(os.Stderr, "[ERROR] Operation for path '%s' and method '%s' is missing an operationId.\n", path, method)
+				fmt.Fprintf(os.Stderr, "  Suggestion: Add an 'operationId' field, e.g.\n    %s:\n      %s:\n        operationId: <uniqueOperationId>\n", path, method)
+				failures++
+			}
 		}
+	}
+
+	for _, op := range ops {
 		if _, ok := toolMap[op.OperationID]; !ok && op.OperationID != "" {
 			fmt.Fprintf(os.Stderr, "[ERROR] Tool '%s' (operationId) is missing from MCP server.\n", op.OperationID)
 			fmt.Fprintf(os.Stderr, "  Suggestion: Ensure the operationId '%s' is unique and present in the OpenAPI spec.\n", op.OperationID)
@@ -287,7 +300,7 @@ func SelfTestOpenAPIMCPWithOptions(doc *openapi3.T, toolNames []string, detailed
 			}
 			if p.Schema == nil || p.Schema.Value == nil {
 				fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a schema/type.\n", p.Name, op.OperationID)
-				fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'schema' with a 'type', e.g.\n    - name: %s\n      in: %s\n      schema:\n        type: string\n", p.Name, p.In, p.Name, p.In)
+				fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'schema' with a 'type', e.g.\n    - name: %s\n      in: %s\n      schema:\n        type: string\n", p.Name, p.In)
 				failures++
 				continue
 			}

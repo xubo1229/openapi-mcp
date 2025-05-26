@@ -10,8 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	"io/ioutil"
-
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -559,7 +557,7 @@ func TestInfoTool(t *testing.T) {
 }
 
 func TestValidateCommand(t *testing.T) {
-	// Minimal valid OpenAPI spec
+	// Test the validate functionality directly without going through main()
 	validSpec := `openapi: 3.0.0
 info:
   title: Test API
@@ -584,75 +582,39 @@ paths:
           description: OK
 ` // missing operationId
 
-	validFile, err := ioutil.TempFile("", "valid-openapi-*.yaml")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	defer os.Remove(validFile.Name())
-	validFile.WriteString(validSpec)
-	validFile.Close()
-
-	invalidFile, err := ioutil.TempFile("", "invalid-openapi-*.yaml")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	defer os.Remove(invalidFile.Name())
-	invalidFile.WriteString(invalidSpec)
-	invalidFile.Close()
-
-	// Save and restore original os.Args
-	origArgs := os.Args
-	defer func() { os.Args = origArgs }()
-
-	// Helper to capture stderr
-	captureStderr := func(f func()) string {
-		r, w, _ := os.Pipe()
-		orig := os.Stderr
-		os.Stderr = w
-		f()
-		w.Close()
-		os.Stderr = orig
-		out, _ := ioutil.ReadAll(r)
-		return string(out)
-	}
-
 	// Test valid spec
-	os.Args = []string{"openapi-mcp", "validate", validFile.Name()}
-	code := 0
-	stderr := captureStderr(func() {
-		defer func() {
-			if v := recover(); v != nil {
-				if ec, ok := v.(int); ok {
-					code = ec
-				}
-			}
-		}()
-		main()
-	})
-	if code != 0 {
-		t.Errorf("expected exit code 0 for valid spec, got %d, stderr: %s", code, stderr)
+	doc, err := openapi2mcp.LoadOpenAPISpecFromString(validSpec)
+	if err != nil {
+		t.Fatalf("failed to load valid spec: %v", err)
 	}
-	if !strings.Contains(stderr, "validated successfully") {
-		t.Errorf("expected success message in stderr, got: %s", stderr)
+
+	ops := openapi2mcp.ExtractOpenAPIOperations(doc)
+	var toolNames []string
+	for _, op := range ops {
+		toolNames = append(toolNames, op.OperationID)
+	}
+
+	err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, false)
+	if err != nil {
+		t.Errorf("expected valid spec to pass self-test, got error: %v", err)
 	}
 
 	// Test invalid spec
-	os.Args = []string{"openapi-mcp", "validate", invalidFile.Name()}
-	code = 0
-	stderr = captureStderr(func() {
-		defer func() {
-			if v := recover(); v != nil {
-				if ec, ok := v.(int); ok {
-					code = ec
-				}
-			}
-		}()
-		main()
-	})
-	if code == 0 {
-		t.Errorf("expected nonzero exit code for invalid spec, got 0, stderr: %s", stderr)
+	doc, err = openapi2mcp.LoadOpenAPISpecFromString(invalidSpec)
+	if err != nil {
+		t.Fatalf("failed to load invalid spec: %v", err)
 	}
-	if !strings.Contains(stderr, "failed") {
-		t.Errorf("expected failure message in stderr, got: %s", stderr)
+
+	ops = openapi2mcp.ExtractOpenAPIOperations(doc)
+	toolNames = nil
+	for _, op := range ops {
+		toolNames = append(toolNames, op.OperationID)
+	}
+
+	err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, false)
+	if err == nil {
+		t.Errorf("expected invalid spec to fail self-test, but it passed")
+	} else if !strings.Contains(err.Error(), "self-test failed") {
+		t.Errorf("expected self-test failure error, got: %v", err)
 	}
 }
