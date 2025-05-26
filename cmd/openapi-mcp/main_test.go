@@ -654,13 +654,13 @@ paths:
 	if err != nil {
 		t.Fatalf("failed to load valid spec: %v", err)
 	}
-	
+
 	ops := openapi2mcp.ExtractOpenAPIOperations(doc)
 	var toolNames []string
 	for _, op := range ops {
 		toolNames = append(toolNames, op.OperationID)
 	}
-	
+
 	err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, true)
 	if err != nil {
 		t.Errorf("expected well-formed spec to pass lint, got error: %v", err)
@@ -671,13 +671,13 @@ paths:
 	if err != nil {
 		t.Fatalf("failed to load spec with issues: %v", err)
 	}
-	
+
 	ops = openapi2mcp.ExtractOpenAPIOperations(doc)
 	toolNames = nil
 	for _, op := range ops {
 		toolNames = append(toolNames, op.OperationID)
 	}
-	
+
 	err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, true)
 	if err != nil {
 		t.Errorf("expected spec with warnings to pass lint (warnings don't fail), got error: %v", err)
