@@ -130,11 +130,12 @@ func ServeHTTPLint(addr string, detailedSuggestions bool) error {
 	server := NewHTTPLintServer(detailedSuggestions)
 
 	mux := http.NewServeMux()
-	if detailedSuggestions {
-		mux.HandleFunc("/lint", server.HandleLint)
-	} else {
-		mux.HandleFunc("/validate", server.HandleLint)
-	}
+	// Always register both endpoints with different behaviors
+	validateServer := NewHTTPLintServer(false) // Basic validation
+	lintServer := NewHTTPLintServer(true)      // Detailed linting
+
+	mux.HandleFunc("/validate", validateServer.HandleLint)
+	mux.HandleFunc("/lint", lintServer.HandleLint)
 	mux.HandleFunc("/health", server.HandleHealth)
 
 	// Add a root handler that shows available endpoints
@@ -172,18 +173,15 @@ func ServeHTTPLint(addr string, detailedSuggestions bool) error {
 		}
 
 		endpointsMap := endpoints["endpoints"].(map[string]interface{})
-		if detailedSuggestions {
-			endpointsMap["POST /lint"] = "Comprehensive OpenAPI linting with detailed suggestions"
-		} else {
-			endpointsMap["POST /validate"] = "Basic OpenAPI validation for critical issues"
-		}
+		// Both endpoints are always available
+		endpointsMap["POST /validate"] = "Basic OpenAPI validation for critical issues"
+		endpointsMap["POST /lint"] = "Comprehensive OpenAPI linting with detailed suggestions"
 		endpointsMap["GET /health"] = "Health check endpoint"
 
 		json.NewEncoder(w).Encode(endpoints)
 	})
 
-	log.Printf("Starting OpenAPI %s HTTP server on %s",
-		map[bool]string{true: "lint", false: "validate"}[detailedSuggestions], addr)
+	log.Printf("Starting OpenAPI validation/linting HTTP server on %s (validate & lint endpoints available)", addr)
 
 	return http.ListenAndServe(addr, mux)
 }

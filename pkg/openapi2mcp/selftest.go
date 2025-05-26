@@ -70,25 +70,29 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 				fmt.Fprintf(os.Stderr, "  Suggestion: Use one of: path, query, header, cookie.\n")
 				warnings++
 			}
+			var schema *openapi3.Schema
+			var typeStr string
+
 			if p.Schema == nil || p.Schema.Value == nil {
 				fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a schema/type.\n", p.Name, op.OperationID)
 				fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'schema' with a 'type', e.g.\n    - name: %s\n      in: %s\n      schema:\n        type: string\n", p.Name, p.In)
 				failures++
-				continue
+				// Don't continue - we can still check other parameter properties
+			} else {
+				schema = p.Schema.Value
+				typeStr = schema.Type
+				if typeStr == "" {
+					fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a type in its schema.\n", p.Name, op.OperationID)
+					fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: string\n")
+					failures++
+				} else if !recommendedTypes[typeStr] {
+					fmt.Fprintf(os.Stderr, "[WARN] Parameter '%s' in operation '%s' uses uncommon type '%s'.\n", p.Name, op.OperationID, typeStr)
+					fmt.Fprintf(os.Stderr, "  Suggestion: Use one of: string, integer, boolean, number, array, object.\n")
+					warnings++
+				}
 			}
-			schema := p.Schema.Value
-			typeStr := schema.Type
-			if typeStr == "" {
-				fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a type in its schema.\n", p.Name, op.OperationID)
-				fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: string\n")
-				failures++
-			} else if !recommendedTypes[typeStr] {
-				fmt.Fprintf(os.Stderr, "[WARN] Parameter '%s' in operation '%s' uses uncommon type '%s'.\n", p.Name, op.OperationID, typeStr)
-				fmt.Fprintf(os.Stderr, "  Suggestion: Use one of: string, integer, boolean, number, array, object.\n")
-				warnings++
-			}
-			// Enum/default/example suggestions
-			if typeStr == "string" || typeStr == "integer" || typeStr == "boolean" {
+			// Enum/default/example suggestions (only if schema exists)
+			if schema != nil && (typeStr == "string" || typeStr == "integer" || typeStr == "boolean") {
 				if len(schema.Enum) == 0 {
 					fmt.Fprintf(os.Stderr, "[INFO] Parameter '%s' in operation '%s' has no enum.\n", p.Name, op.OperationID)
 					fmt.Fprintf(os.Stderr, "  Suggestion: Add an 'enum' if the parameter has a fixed set of values.\n")
@@ -124,25 +128,29 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 		// Request body checks
 		if op.RequestBody != nil && op.RequestBody.Value != nil {
 			for mtName, mt := range op.RequestBody.Value.Content {
+				var schema *openapi3.Schema
+				var typeStr string
+
 				if mt.Schema == nil || mt.Schema.Value == nil {
 					fmt.Fprintf(os.Stderr, "[ERROR] Request body for operation '%s' (media type: '%s') is missing a schema/type.\n", op.OperationID, mtName)
 					fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'schema' with a 'type', e.g. type: object\n")
 					failures++
-					continue
+					// Don't continue - we can still check other media types and properties
+				} else {
+					schema = mt.Schema.Value
+					typeStr = schema.Type
+					if typeStr == "" {
+						fmt.Fprintf(os.Stderr, "[ERROR] Request body for operation '%s' (media type: '%s') is missing a type in its schema.\n", op.OperationID, mtName)
+						fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: object\n")
+						failures++
+					} else if !recommendedTypes[typeStr] {
+						fmt.Fprintf(os.Stderr, "[WARN] Request body for operation '%s' uses uncommon type '%s'.\n", op.OperationID, typeStr)
+						fmt.Fprintf(os.Stderr, "  Suggestion: Use one of: string, integer, boolean, number, array, object.\n")
+						warnings++
+					}
 				}
-				schema := mt.Schema.Value
-				typeStr := schema.Type
-				if typeStr == "" {
-					fmt.Fprintf(os.Stderr, "[ERROR] Request body for operation '%s' (media type: '%s') is missing a type in its schema.\n", op.OperationID, mtName)
-					fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: object\n")
-					failures++
-				} else if !recommendedTypes[typeStr] {
-					fmt.Fprintf(os.Stderr, "[WARN] Request body for operation '%s' uses uncommon type '%s'.\n", op.OperationID, typeStr)
-					fmt.Fprintf(os.Stderr, "  Suggestion: Use one of: string, integer, boolean, number, array, object.\n")
-					warnings++
-				}
-				// Enum/default/example suggestions for request body properties
-				if typeStr == "object" && schema.Properties != nil {
+				// Enum/default/example suggestions for request body properties (only if schema exists)
+				if schema != nil && typeStr == "object" && schema.Properties != nil {
 					for propName, propRef := range schema.Properties {
 						if propRef == nil || propRef.Value == nil {
 							continue
@@ -302,13 +310,14 @@ func SelfTestOpenAPIMCPWithOptions(doc *openapi3.T, toolNames []string, detailed
 				fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a schema/type.\n", p.Name, op.OperationID)
 				fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'schema' with a 'type', e.g.\n    - name: %s\n      in: %s\n      schema:\n        type: string\n", p.Name, p.In)
 				failures++
-				continue
-			}
-			typeStr := p.Schema.Value.Type
-			if typeStr == "" {
-				fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a type in its schema.\n", p.Name, op.OperationID)
-				fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: string\n")
-				failures++
+				// Don't continue - we can still check other parameters
+			} else {
+				typeStr := p.Schema.Value.Type
+				if typeStr == "" {
+					fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a type in its schema.\n", p.Name, op.OperationID)
+					fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: string\n")
+					failures++
+				}
 			}
 		}
 		// Request body checks
@@ -318,13 +327,14 @@ func SelfTestOpenAPIMCPWithOptions(doc *openapi3.T, toolNames []string, detailed
 					fmt.Fprintf(os.Stderr, "[ERROR] Request body for operation '%s' (media type: '%s') is missing a schema/type.\n", op.OperationID, mtName)
 					fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'schema' with a 'type', e.g. type: object\n")
 					failures++
-					continue
-				}
-				typeStr := mt.Schema.Value.Type
-				if typeStr == "" {
-					fmt.Fprintf(os.Stderr, "[ERROR] Request body for operation '%s' (media type: '%s') is missing a type in its schema.\n", op.OperationID, mtName)
-					fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: object\n")
-					failures++
+					// Don't continue - we can still check other media types
+				} else {
+					typeStr := mt.Schema.Value.Type
+					if typeStr == "" {
+						fmt.Fprintf(os.Stderr, "[ERROR] Request body for operation '%s' (media type: '%s') is missing a type in its schema.\n", op.OperationID, mtName)
+						fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: object\n")
+						failures++
+					}
 				}
 			}
 		}
@@ -531,8 +541,12 @@ func captureLintIssues(doc *openapi3.T, toolNames []string, detailedSuggestions 
 					Suggestion: "Add a 'name' field to the parameter.",
 					Operation:  op.OperationID,
 				})
-				continue
+				// Don't continue - we can still check schema and other properties
 			}
+
+			var schema *openapi3.Schema
+			var typeStr string
+
 			if p.Schema == nil || p.Schema.Value == nil {
 				issues = append(issues, LintIssue{
 					Type:       "error",
@@ -541,12 +555,14 @@ func captureLintIssues(doc *openapi3.T, toolNames []string, detailedSuggestions 
 					Operation:  op.OperationID,
 					Parameter:  p.Name,
 				})
-				continue
+				// Don't continue - we can still check other parameter properties
+			} else {
+				schema = p.Schema.Value
+				typeStr = schema.Type
 			}
 
-			schema := p.Schema.Value
-			typeStr := schema.Type
-			if typeStr != "" && !recommendedTypes[typeStr] {
+			// Check type recommendations and other schema properties (only if schema exists)
+			if schema != nil && typeStr != "" && !recommendedTypes[typeStr] {
 				issues = append(issues, LintIssue{
 					Type:       "warning",
 					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has type '%s' which may not be well-supported.", p.Name, op.OperationID, typeStr),
@@ -565,33 +581,35 @@ func captureLintIssues(doc *openapi3.T, toolNames []string, detailedSuggestions 
 				})
 			}
 
-			// Additional detailed checks
-			if len(schema.Enum) == 0 && (typeStr == "string" || typeStr == "integer") {
-				issues = append(issues, LintIssue{
-					Type:       "warning",
-					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no enum.", p.Name, op.OperationID),
-					Suggestion: "Add an 'enum' if the parameter has a fixed set of values.",
-					Operation:  op.OperationID,
-					Parameter:  p.Name,
-				})
-			}
-			if schema.Default == nil {
-				issues = append(issues, LintIssue{
-					Type:       "warning",
-					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no default value.", p.Name, op.OperationID),
-					Suggestion: "Add a 'default' value for better UX.",
-					Operation:  op.OperationID,
-					Parameter:  p.Name,
-				})
-			}
-			if schema.Example == nil {
-				issues = append(issues, LintIssue{
-					Type:       "warning",
-					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no example.", p.Name, op.OperationID),
-					Suggestion: "Add an 'example' for documentation and testing.",
-					Operation:  op.OperationID,
-					Parameter:  p.Name,
-				})
+			// Additional detailed checks (only if schema exists)
+			if schema != nil {
+				if len(schema.Enum) == 0 && (typeStr == "string" || typeStr == "integer") {
+					issues = append(issues, LintIssue{
+						Type:       "warning",
+						Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no enum.", p.Name, op.OperationID),
+						Suggestion: "Add an 'enum' if the parameter has a fixed set of values.",
+						Operation:  op.OperationID,
+						Parameter:  p.Name,
+					})
+				}
+				if schema.Default == nil {
+					issues = append(issues, LintIssue{
+						Type:       "warning",
+						Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no default value.", p.Name, op.OperationID),
+						Suggestion: "Add a 'default' value for better UX.",
+						Operation:  op.OperationID,
+						Parameter:  p.Name,
+					})
+				}
+				if schema.Example == nil {
+					issues = append(issues, LintIssue{
+						Type:       "warning",
+						Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no example.", p.Name, op.OperationID),
+						Suggestion: "Add an 'example' for documentation and testing.",
+						Operation:  op.OperationID,
+						Parameter:  p.Name,
+					})
+				}
 			}
 		}
 	}

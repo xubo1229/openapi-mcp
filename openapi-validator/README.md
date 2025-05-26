@@ -19,11 +19,13 @@ A modern, responsive web interface for validating and linting OpenAPI specificat
 First, ensure you have the `openapi-mcp` tool running in HTTP mode:
 
 ```bash
-# For validation mode (critical issues only)
+# Start the HTTP server (both validate and lint endpoints will be available)
 ./openapi-mcp --http=:8080 validate
-
-# For lint mode (comprehensive analysis)
+# OR
 ./openapi-mcp --http=:8080 lint
+
+# Both commands now expose both /validate and /lint endpoints
+# The web interface can switch between modes dynamically
 ```
 
 ### 2. Open the Web Interface

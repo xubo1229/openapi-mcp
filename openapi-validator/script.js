@@ -327,15 +327,27 @@ components:
           description: Tag for categorizing the pet
           maxLength: 50`;
 
-        document.getElementById('spec-input').value = exampleSpec;
-        this.currentSpec = exampleSpec;
+        // Clear any file selection first
         this.clearFile();
-        this.updateValidateButton();
+        
+        // Set the textarea value and update currentSpec
+        const textInput = document.getElementById('spec-input');
+        textInput.value = exampleSpec;
+        this.currentSpec = exampleSpec;
+        
+        // Use setTimeout to ensure the value is set before updating the button
+        setTimeout(() => {
+            this.updateValidateButton();
+        }, 0);
     }
 
     updateValidateButton() {
         const btn = document.getElementById('validate-btn');
-        const hasSpec = this.currentSpec && this.currentSpec.trim().length > 0;
+        const textInput = document.getElementById('spec-input');
+        
+        // Check both currentSpec and the text input value
+        const currentSpecText = this.currentSpec || textInput.value.trim();
+        const hasSpec = currentSpecText && currentSpecText.length > 0;
         
         btn.disabled = !hasSpec;
         
@@ -345,20 +357,26 @@ components:
         } else {
             btnText.textContent = 'Validate OpenAPI Spec';
         }
+        
+        // Ensure currentSpec is in sync
+        if (hasSpec && !this.currentSpec) {
+            this.currentSpec = textInput.value.trim();
+        }
     }
 
     async validateSpec() {
+        // Ensure currentSpec is up to date
+        const textInput = document.getElementById('spec-input');
+        if (!this.currentSpec && textInput.value.trim()) {
+            this.currentSpec = textInput.value.trim();
+        }
+        
         if (!this.currentSpec) {
             alert('Please provide an OpenAPI specification to validate');
             return;
         }
 
-        // Get the current spec (from file or text input)
-        const spec = this.currentSpec || document.getElementById('spec-input').value.trim();
-        if (!spec) {
-            alert('Please provide an OpenAPI specification to validate');
-            return;
-        }
+        const spec = this.currentSpec;
 
         this.showLoading(true);
         this.hideResults();

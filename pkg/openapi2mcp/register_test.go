@@ -1,6 +1,7 @@
 package openapi2mcp
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -296,5 +297,87 @@ func TestFormatPreservation(t *testing.T) {
 		}
 	} else {
 		t.Error("dateField not found in schema")
+	}
+}
+
+func TestComprehensiveValidation(t *testing.T) {
+	// Create a spec with multiple validation issues to test comprehensive collection
+	spec := `openapi: 3.0.0
+info:
+  title: Multi-Issue Test API
+  version: 1.0.0
+paths:
+  /test:
+    get:
+      # Missing operationId (error)
+      # Missing summary, description, tags (warnings)
+      parameters:
+        - name: param1
+          in: query
+          required: true
+          schema:
+            type: string
+            # Missing enum, default, example (warnings)
+        - name: param2
+          in: query
+          required: true
+          schema:
+            type: integer
+            # Missing enum, default, example (warnings)
+      responses:
+        '200':
+          description: OK`
+
+	doc, err := LoadOpenAPISpecFromString(spec)
+	if err != nil {
+		t.Fatalf("Failed to parse spec: %v", err)
+	}
+
+	// Test comprehensive linting - should collect all issues, not stop at first
+	result := LintOpenAPISpec(doc, true)
+
+	// Should have at least 1 error (missing operationId) and multiple warnings
+	if result.ErrorCount < 1 {
+		t.Errorf("Expected at least 1 error, got %d", result.ErrorCount)
+	}
+
+	if result.WarningCount < 5 {
+		t.Errorf("Expected at least 5 warnings, got %d", result.WarningCount)
+	}
+
+	if len(result.Issues) < 6 {
+		t.Errorf("Expected comprehensive collection of issues, got %d total issues", len(result.Issues))
+	}
+
+	// Should not succeed due to errors
+	if result.Success {
+		t.Error("Expected validation to fail due to errors")
+	}
+
+	// Verify we have issues for different types of problems
+	hasOperationIdError := false
+	hasSummaryWarning := false
+	hasParameterWarning := false
+
+	for _, issue := range result.Issues {
+		if issue.Type == "error" && strings.Contains(issue.Message, "operationId") {
+			hasOperationIdError = true
+		}
+		if issue.Type == "warning" && strings.Contains(issue.Message, "summary") {
+			hasSummaryWarning = true
+		}
+		if issue.Type == "warning" && strings.Contains(issue.Message, "enum") {
+			hasParameterWarning = true
+		}
+	}
+
+	if !hasOperationIdError {
+		t.Error("Expected to find operationId error")
+	}
+	if !hasSummaryWarning {
+		t.Error("Expected to find summary warning")
+	}
+	if !hasParameterWarning {
+		t.Error("Expected to find parameter warnings")
 	}
 }
