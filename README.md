@@ -11,7 +11,7 @@
 
 ---
 
-**openapi-mcp** transforms any OpenAPI 3.x specification into a powerful, AI-friendly MCP (Machine-to-Computer Protocol) tool server. In seconds, it validates your OpenAPI spec, generates MCP tools for each operation, and starts serving through stdio or HTTP with structured, machine-readable output.
+**openapi-mcp** transforms any OpenAPI 3.x specification into a powerful, AI-friendly MCP (Model Context Protocol) tool server. In seconds, it validates your OpenAPI spec, generates MCP tools for each operation, and starts serving through stdio or HTTP with structured, machine-readable output.
 
 ## 📋 Table of Contents
 
