@@ -346,7 +346,6 @@ openapi-mcp can be imported as a Go module in your projects:
 package main
 
 import (
-        "github.com/getkin/kin-openapi/openapi3"
         "github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
 )
 
