@@ -685,3 +685,182 @@ paths:
 	// Note: The detailed linter reports warnings for missing summary/description/tags but doesn't fail
 	// This is correct behavior - warnings are informational, errors cause failure
 }
+
+func TestHTTPLintEndpoints(t *testing.T) {
+	validSpec := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /foo:
+    get:
+      operationId: getFoo
+      summary: Get foo
+      description: Get a foo resource
+      tags: [foo]
+      responses:
+        '200':
+          description: OK
+`
+	invalidSpec := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /foo:
+    get:
+      responses:
+        '200':
+          description: OK
+` // missing operationId
+
+	// Test lint endpoint
+	lintServer := openapi2mcp.NewHTTPLintServer(true)
+
+	// Test valid spec
+	reqBody := openapi2mcp.HTTPLintRequest{OpenAPISpec: validSpec}
+	jsonBody, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest("POST", "/lint", strings.NewReader(string(jsonBody)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	lintServer.HandleLint(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200 for valid spec, got %d", w.Code)
+	}
+
+	var result openapi2mcp.LintResult
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+
+	if !result.Success {
+		t.Errorf("expected lint to succeed for valid spec")
+	}
+
+	// Test invalid spec
+	reqBody = openapi2mcp.HTTPLintRequest{OpenAPISpec: invalidSpec}
+	jsonBody, _ = json.Marshal(reqBody)
+
+	req = httptest.NewRequest("POST", "/lint", strings.NewReader(string(jsonBody)))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+
+	lintServer.HandleLint(w, req)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected status 422 for invalid spec, got %d", w.Code)
+	}
+
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+
+	if result.Success {
+		t.Errorf("expected lint to fail for invalid spec")
+	}
+
+	if result.ErrorCount == 0 {
+		t.Errorf("expected errors for invalid spec, got %d", result.ErrorCount)
+	}
+
+	// Test validate endpoint
+	validateServer := openapi2mcp.NewHTTPLintServer(false)
+
+	reqBody = openapi2mcp.HTTPLintRequest{OpenAPISpec: invalidSpec}
+	jsonBody, _ = json.Marshal(reqBody)
+
+	req = httptest.NewRequest("POST", "/validate", strings.NewReader(string(jsonBody)))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+
+	validateServer.HandleLint(w, req)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected status 422 for invalid spec, got %d", w.Code)
+	}
+
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+
+	if result.Success {
+		t.Errorf("expected validation to fail for spec with missing operationId")
+	}
+}
+
+func TestHTTPLintCORSHeaders(t *testing.T) {
+	validSpec := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /foo:
+    get:
+      operationId: getFoo
+      responses:
+        '200':
+          description: OK
+`
+
+	lintServer := openapi2mcp.NewHTTPLintServer(true)
+
+	// Test POST request CORS headers
+	reqBody := openapi2mcp.HTTPLintRequest{OpenAPISpec: validSpec}
+	jsonBody, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest("POST", "/lint", strings.NewReader(string(jsonBody)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	lintServer.HandleLint(w, req)
+
+	// Check CORS headers
+	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Errorf("expected Access-Control-Allow-Origin: *, got %s", w.Header().Get("Access-Control-Allow-Origin"))
+	}
+	if w.Header().Get("Access-Control-Allow-Methods") != "GET, POST, OPTIONS" {
+		t.Errorf("expected Access-Control-Allow-Methods: GET, POST, OPTIONS, got %s", w.Header().Get("Access-Control-Allow-Methods"))
+	}
+	if w.Header().Get("Access-Control-Allow-Headers") != "Content-Type, Accept, Authorization" {
+		t.Errorf("expected Access-Control-Allow-Headers: Content-Type, Accept, Authorization, got %s", w.Header().Get("Access-Control-Allow-Headers"))
+	}
+
+	// Check caching headers
+	if w.Header().Get("Cache-Control") != "no-cache, no-store, must-revalidate" {
+		t.Errorf("expected Cache-Control: no-cache, no-store, must-revalidate, got %s", w.Header().Get("Cache-Control"))
+	}
+	if w.Header().Get("Pragma") != "no-cache" {
+		t.Errorf("expected Pragma: no-cache, got %s", w.Header().Get("Pragma"))
+	}
+
+	// Test OPTIONS preflight request
+	req = httptest.NewRequest("OPTIONS", "/lint", nil)
+	w = httptest.NewRecorder()
+
+	lintServer.HandleLint(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200 for OPTIONS request, got %d", w.Code)
+	}
+
+	// Check CORS headers on OPTIONS response
+	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Errorf("expected Access-Control-Allow-Origin: * on OPTIONS, got %s", w.Header().Get("Access-Control-Allow-Origin"))
+	}
+	if w.Header().Get("Access-Control-Max-Age") != "86400" {
+		t.Errorf("expected Access-Control-Max-Age: 86400, got %s", w.Header().Get("Access-Control-Max-Age"))
+	}
+
+	// Test health endpoint CORS headers
+	req = httptest.NewRequest("GET", "/health", nil)
+	w = httptest.NewRecorder()
+
+	lintServer.HandleHealth(w, req)
+
+	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
+		t.Errorf("expected Access-Control-Allow-Origin: * on health endpoint, got %s", w.Header().Get("Access-Control-Allow-Origin"))
+	}
+}

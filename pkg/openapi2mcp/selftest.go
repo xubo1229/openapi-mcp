@@ -359,3 +359,242 @@ func SelfTestOpenAPIMCPWithOptions(doc *openapi3.T, toolNames []string, detailed
 //   if err := openapi2mcp.SelfTestOpenAPIMCP(doc, toolNames); err != nil {
 //       log.Fatal(err)
 //   }
+
+// LintOpenAPISpec performs comprehensive linting and returns structured results
+func LintOpenAPISpec(doc *openapi3.T, detailedSuggestions bool) *LintResult {
+	ops := ExtractOpenAPIOperations(doc)
+	var toolNames []string
+	for _, op := range ops {
+		toolNames = append(toolNames, op.OperationID)
+	}
+
+	result := &LintResult{
+		Issues: []LintIssue{},
+	}
+
+	// Capture linting issues
+	issues := captureLintIssues(doc, toolNames, detailedSuggestions)
+	result.Issues = issues
+
+	// Count errors and warnings
+	for _, issue := range issues {
+		if issue.Type == "error" {
+			result.ErrorCount++
+		} else if issue.Type == "warning" {
+			result.WarningCount++
+		}
+	}
+
+	// Determine success status
+	result.Success = result.ErrorCount == 0
+
+	// Generate summary
+	if result.ErrorCount == 0 && result.WarningCount == 0 {
+		if detailedSuggestions {
+			result.Summary = "OpenAPI linting passed: spec follows all best practices."
+		} else {
+			result.Summary = "MCP validation passed: all tools and required arguments are present."
+		}
+	} else if result.ErrorCount > 0 {
+		if detailedSuggestions {
+			result.Summary = fmt.Sprintf("OpenAPI linting completed with issues: %d errors, %d warnings.", result.ErrorCount, result.WarningCount)
+		} else {
+			result.Summary = fmt.Sprintf("MCP validation failed: %d errors, %d warnings.", result.ErrorCount, result.WarningCount)
+		}
+	} else {
+		result.Summary = fmt.Sprintf("OpenAPI linting passed with %d warnings.", result.WarningCount)
+	}
+
+	return result
+}
+
+// captureLintIssues captures linting issues without printing to stderr
+func captureLintIssues(doc *openapi3.T, toolNames []string, detailedSuggestions bool) []LintIssue {
+	var issues []LintIssue
+	ops := ExtractOpenAPIOperations(doc)
+	toolMap := map[string]struct{}{}
+	for _, name := range toolNames {
+		toolMap[name] = struct{}{}
+	}
+
+	// Check for missing operationIds in the original spec
+	for path, pathItem := range doc.Paths {
+		for method, operation := range pathItem.Operations() {
+			if operation.OperationID == "" {
+				issues = append(issues, LintIssue{
+					Type:       "error",
+					Message:    fmt.Sprintf("Operation for path '%s' and method '%s' is missing an operationId.", path, method),
+					Suggestion: fmt.Sprintf("Add an 'operationId' field, e.g.\n    %s:\n      %s:\n        operationId: <uniqueOperationId>", path, method),
+					Path:       path,
+					Method:     method,
+				})
+			}
+		}
+	}
+
+	if !detailedSuggestions {
+		// Basic validation only - check tool presence
+		for _, op := range ops {
+			if _, ok := toolMap[op.OperationID]; !ok && op.OperationID != "" {
+				issues = append(issues, LintIssue{
+					Type:       "error",
+					Message:    fmt.Sprintf("Tool '%s' (operationId) is missing from MCP server.", op.OperationID),
+					Suggestion: fmt.Sprintf("Ensure the operationId '%s' is unique and present in the OpenAPI spec.", op.OperationID),
+					Operation:  op.OperationID,
+				})
+			}
+
+			// Basic parameter checks
+			for _, paramRef := range op.Parameters {
+				if paramRef == nil || paramRef.Value == nil {
+					continue
+				}
+				p := paramRef.Value
+				if p.Name == "" {
+					issues = append(issues, LintIssue{
+						Type:       "error",
+						Message:    fmt.Sprintf("Operation '%s' has a parameter with no name.", op.OperationID),
+						Suggestion: "Add a 'name' field to the parameter.",
+						Operation:  op.OperationID,
+					})
+				}
+				if p.Schema == nil || p.Schema.Value == nil {
+					issues = append(issues, LintIssue{
+						Type:       "error",
+						Message:    fmt.Sprintf("Parameter '%s' in operation '%s' is missing a schema/type.", p.Name, op.OperationID),
+						Suggestion: fmt.Sprintf("Add a 'schema' with a 'type', e.g.\n    - name: %s\n      in: %s\n      schema:\n        type: string", p.Name, p.In),
+						Operation:  op.OperationID,
+						Parameter:  p.Name,
+					})
+				}
+			}
+		}
+		return issues
+	}
+
+	// Detailed linting with comprehensive suggestions
+	recommendedTypes := map[string]bool{"string": true, "integer": true, "boolean": true, "number": true, "array": true, "object": true}
+	recommendedLocations := map[string]bool{"path": true, "query": true, "header": true, "cookie": true}
+
+	for _, op := range ops {
+		if _, ok := toolMap[op.OperationID]; !ok && op.OperationID != "" {
+			issues = append(issues, LintIssue{
+				Type:       "error",
+				Message:    fmt.Sprintf("Tool '%s' (operationId) is missing from MCP server.", op.OperationID),
+				Suggestion: fmt.Sprintf("Ensure the operationId '%s' is unique and present in the OpenAPI spec.", op.OperationID),
+				Operation:  op.OperationID,
+			})
+		}
+
+		// Check for missing summary, description, tags
+		if op.Summary == "" {
+			issues = append(issues, LintIssue{
+				Type:       "warning",
+				Message:    fmt.Sprintf("Operation '%s' (path: '%s', method: '%s') is missing a summary.", op.OperationID, op.Path, op.Method),
+				Suggestion: "Add a 'summary' field to describe the operation's purpose.",
+				Operation:  op.OperationID,
+				Path:       op.Path,
+				Method:     op.Method,
+			})
+		}
+		if op.Description == "" {
+			issues = append(issues, LintIssue{
+				Type:       "warning",
+				Message:    fmt.Sprintf("Operation '%s' (path: '%s', method: '%s') is missing a description.", op.OperationID, op.Path, op.Method),
+				Suggestion: "Add a 'description' field for more detail.",
+				Operation:  op.OperationID,
+				Path:       op.Path,
+				Method:     op.Method,
+			})
+		}
+		if len(op.Tags) == 0 {
+			issues = append(issues, LintIssue{
+				Type:       "warning",
+				Message:    fmt.Sprintf("Operation '%s' (path: '%s', method: '%s') has no tags.", op.OperationID, op.Path, op.Method),
+				Suggestion: "Add tags to group related operations.",
+				Operation:  op.OperationID,
+				Path:       op.Path,
+				Method:     op.Method,
+			})
+		}
+
+		// Parameter checks with detailed suggestions
+		for _, paramRef := range op.Parameters {
+			if paramRef == nil || paramRef.Value == nil {
+				continue
+			}
+			p := paramRef.Value
+			if p.Name == "" {
+				issues = append(issues, LintIssue{
+					Type:       "error",
+					Message:    fmt.Sprintf("Operation '%s' has a parameter with no name.", op.OperationID),
+					Suggestion: "Add a 'name' field to the parameter.",
+					Operation:  op.OperationID,
+				})
+				continue
+			}
+			if p.Schema == nil || p.Schema.Value == nil {
+				issues = append(issues, LintIssue{
+					Type:       "error",
+					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' is missing a schema/type.", p.Name, op.OperationID),
+					Suggestion: fmt.Sprintf("Add a 'schema' with a 'type', e.g.\n    - name: %s\n      in: %s\n      schema:\n        type: string", p.Name, p.In),
+					Operation:  op.OperationID,
+					Parameter:  p.Name,
+				})
+				continue
+			}
+
+			schema := p.Schema.Value
+			typeStr := schema.Type
+			if typeStr != "" && !recommendedTypes[typeStr] {
+				issues = append(issues, LintIssue{
+					Type:       "warning",
+					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has type '%s' which may not be well-supported.", p.Name, op.OperationID, typeStr),
+					Suggestion: "Consider using standard types: string, integer, boolean, number, array, object.",
+					Operation:  op.OperationID,
+					Parameter:  p.Name,
+				})
+			}
+			if p.In != "" && !recommendedLocations[p.In] {
+				issues = append(issues, LintIssue{
+					Type:       "warning",
+					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' is in location '%s' which may not be well-supported.", p.Name, op.OperationID, p.In),
+					Suggestion: "Consider using standard locations: path, query, header, cookie.",
+					Operation:  op.OperationID,
+					Parameter:  p.Name,
+				})
+			}
+
+			// Additional detailed checks
+			if len(schema.Enum) == 0 && (typeStr == "string" || typeStr == "integer") {
+				issues = append(issues, LintIssue{
+					Type:       "warning",
+					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no enum.", p.Name, op.OperationID),
+					Suggestion: "Add an 'enum' if the parameter has a fixed set of values.",
+					Operation:  op.OperationID,
+					Parameter:  p.Name,
+				})
+			}
+			if schema.Default == nil {
+				issues = append(issues, LintIssue{
+					Type:       "warning",
+					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no default value.", p.Name, op.OperationID),
+					Suggestion: "Add a 'default' value for better UX.",
+					Operation:  op.OperationID,
+					Parameter:  p.Name,
+				})
+			}
+			if schema.Example == nil {
+				issues = append(issues, LintIssue{
+					Type:       "warning",
+					Message:    fmt.Sprintf("Parameter '%s' in operation '%s' has no example.", p.Name, op.OperationID),
+					Suggestion: "Add an 'example' for documentation and testing.",
+					Operation:  op.OperationID,
+					Parameter:  p.Name,
+				})
+			}
+		}
+	}
+
+	return issues
+}

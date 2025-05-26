@@ -127,6 +127,22 @@
             Provides actionable feedback to improve your API specification quality. Reports both errors and warnings.
           </p>
         </div>
+
+        <div class="card mb-4">
+          <h3>HTTP API Mode</h3>
+          <pre><code class="language-bash">openapi-mcp --http=:8080 validate
+openapi-mcp --http=:8080 lint</code></pre>
+          <p>
+            Both validate and lint commands can run as HTTP services using the <code>--http</code> flag. This creates dedicated REST API endpoints for validation/linting (these endpoints are only available in validate/lint mode, not during normal MCP server operation):
+          </p>
+          <ul>
+            <li><code>POST /validate</code> or <code>POST /lint</code> - Process OpenAPI specs sent in request body</li>
+            <li><code>GET /health</code> - Health check endpoint</li>
+          </ul>
+          <p>
+            Perfect for integrating into web applications, CI/CD pipelines, or microservice architectures.
+          </p>
+        </div>
         
         <h2>Flag Categories</h2>
         <p>
@@ -376,6 +392,24 @@
           <p>
             This performs detailed linting with suggestions for best practices, including missing summaries, 
             descriptions, tags, and parameter recommendations.
+          </p>
+        </div>
+        
+        <div class="card mb-4">
+          <h3>HTTP Validation Service</h3>
+          <pre><code class="language-bash">bin/openapi-mcp --http=:8080 validate</code></pre>
+          <p>
+            This starts an HTTP server that accepts OpenAPI specs via POST requests to <code>/validate</code>.
+            Returns structured JSON responses with validation results.
+          </p>
+        </div>
+        
+        <div class="card mb-4">
+          <h3>HTTP Linting Service</h3>
+          <pre><code class="language-bash">bin/openapi-mcp --http=:8080 lint</code></pre>
+          <p>
+            This starts an HTTP server that provides comprehensive linting via POST requests to <code>/lint</code>.
+            Perfect for integrating into web applications or CI/CD pipelines.
           </p>
         </div>
         

@@ -186,6 +186,12 @@ bin/openapi-mcp validate examples/fastly-openapi-mcp.yaml
 
 # Comprehensive linting with detailed suggestions
 bin/openapi-mcp lint examples/fastly-openapi-mcp.yaml
+
+# Start HTTP validation service
+bin/openapi-mcp --http=:8080 validate
+
+# Start HTTP linting service
+bin/openapi-mcp --http=:8080 lint
 ```
 
 The **validate** command performs essential checks:
@@ -201,6 +207,58 @@ The **lint** command provides comprehensive analysis with suggestions for:
 - Best practices for API design
 
 Both commands exit with non-zero status codes when issues are found, making them perfect for CI/CD pipelines.
+
+#### HTTP API for Validation and Linting
+
+Both validate and lint commands can be run as HTTP services using the `--http` flag, allowing you to validate OpenAPI specs via REST API. Note that these endpoints are only available when using the `validate` or `lint` commands, not during normal MCP server operation:
+
+```sh
+# Start validation HTTP service
+bin/openapi-mcp --http=:8080 validate
+
+# Start linting HTTP service
+bin/openapi-mcp --http=:8080 lint
+```
+
+**API Endpoints:**
+
+- `POST /validate` - Validate OpenAPI specs for critical issues
+- `POST /lint` - Comprehensive linting with detailed suggestions
+- `GET /health` - Health check endpoint
+
+**Request Format:**
+```json
+{
+  "openapi_spec": "openapi: 3.0.0\ninfo:\n  title: My API\n  version: 1.0.0\npaths: {}"
+}
+```
+
+**Response Format:**
+```json
+{
+  "success": false,
+  "error_count": 1,
+  "warning_count": 2,
+  "issues": [
+    {
+      "type": "error",
+      "message": "Operation missing operationId",
+      "suggestion": "Add an operationId field",
+      "operation": "GET_/users",
+      "path": "/users",
+      "method": "GET"
+    }
+  ],
+  "summary": "OpenAPI linting completed with issues: 1 errors, 2 warnings."
+}
+```
+
+**Example Usage:**
+```sh
+curl -X POST http://localhost:8080/lint \
+  -H "Content-Type: application/json" \
+  -d '{"openapi_spec": "..."}'
+```
 
 ### Dry Run (Preview Tools as JSON)
 
@@ -282,29 +340,29 @@ openapi-mcp can be imported as a Go module in your projects:
 package main
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
+        "github.com/getkin/kin-openapi/openapi3"
+        "github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
 )
 
 func main() {
-	// Load OpenAPI spec
-	doc, err := openapi2mcp.LoadOpenAPISpec("openapi.yaml")
-	if err != nil {
-		panic(err)
-	}
-	
-	// Create MCP server
-	srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc)
-	
-	// Serve over HTTP
-	if err := openapi2mcp.ServeHTTP(srv, ":8080"); err != nil {
-		panic(err)
-	}
-	
-	// Or serve over stdio
-	// if err := openapi2mcp.ServeStdio(srv); err != nil {
-	//    panic(err)
-	// }
+        // Load OpenAPI spec
+        doc, err := openapi2mcp.LoadOpenAPISpec("openapi.yaml")
+        if err != nil {
+                panic(err)
+        }
+
+        // Create MCP server
+        srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc)
+
+        // Serve over HTTP
+        if err := openapi2mcp.ServeHTTP(srv, ":8080"); err != nil {
+                panic(err)
+        }
+
+        // Or serve over stdio
+        // if err := openapi2mcp.ServeStdio(srv); err != nil {
+        //    panic(err)
+        // }
 }
 ```
 

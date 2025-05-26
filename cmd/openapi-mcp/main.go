@@ -43,6 +43,17 @@ func main() {
 
 	// --- Validate subcommand ---
 	if args[0] == "validate" {
+		// Check if HTTP mode is requested
+		if flags.httpAddr != "" {
+			fmt.Fprintf(os.Stderr, "Starting OpenAPI validation HTTP server on %s\n", flags.httpAddr)
+			err := openapi2mcp.ServeHTTPLint(flags.httpAddr, false)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "HTTP server failed: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument for validate.")
 			os.Exit(1)
@@ -73,6 +84,17 @@ func main() {
 
 	// --- Lint subcommand ---
 	if args[0] == "lint" {
+		// Check if HTTP mode is requested
+		if flags.httpAddr != "" {
+			fmt.Fprintf(os.Stderr, "Starting OpenAPI linting HTTP server on %s\n", flags.httpAddr)
+			err := openapi2mcp.ServeHTTPLint(flags.httpAddr, true)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "HTTP server failed: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument for lint.")
 			os.Exit(1)

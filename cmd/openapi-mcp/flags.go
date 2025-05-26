@@ -45,7 +45,7 @@ func parseFlags() *cliFlags {
 	flag.StringVar(&flags.baseURLFlag, "base-url", "", "Override the base URL for HTTP calls (overrides OPENAPI_BASE_URL env)")
 	flag.StringVar(&flags.bearerToken, "bearer-token", os.Getenv("BEARER_TOKEN"), "Bearer token for Authorization header (overrides BEARER_TOKEN env)")
 	flag.StringVar(&flags.basicAuth, "basic-auth", os.Getenv("BASIC_AUTH"), "Basic auth (user:pass) for Authorization header (overrides BASIC_AUTH env)")
-	flag.StringVar(&flags.httpAddr, "http", "", "If set, serve MCP over HTTP on this address (e.g., :8080) instead of stdio.")
+	flag.StringVar(&flags.httpAddr, "http", "", "Serve over HTTP on this address (e.g., :8080). For MCP server: serves tools via HTTP. For validate/lint: creates REST API endpoints.")
 	flag.StringVar(&flags.includeDescRegex, "include-desc-regex", "", "Only include APIs whose description matches this regex (overrides INCLUDE_DESC_REGEX env)")
 	flag.StringVar(&flags.excludeDescRegex, "exclude-desc-regex", "", "Exclude APIs whose description matches this regex (overrides EXCLUDE_DESC_REGEX env)")
 	flag.BoolVar(&flags.dryRun, "dry-run", false, "Print the generated MCP tool schemas and exit (do not start the server)")
@@ -92,8 +92,36 @@ Usage:
   openapi-mcp [flags] lint <openapi-spec-path>
 
 Commands:
-  validate <openapi-spec-path>  Validate the OpenAPI spec and report actionable errors (does not start a server)
-  lint <openapi-spec-path>      Perform detailed OpenAPI linting with comprehensive suggestions (does not start a server)
+  validate <openapi-spec-path>  Validate the OpenAPI spec and report actionable errors (with --http: starts validation API server)
+  lint <openapi-spec-path>      Perform detailed OpenAPI linting with comprehensive suggestions (with --http: starts linting API server)
+
+Examples:
+
+  Basic MCP Server (stdio):
+    openapi-mcp api.yaml                          # Start stdio MCP server
+    openapi-mcp --api-key=key123 api.yaml         # With API authentication
+
+  MCP Server over HTTP:
+    openapi-mcp --http=:8080 api.yaml             # HTTP server on port 8080
+    openapi-mcp --http=:8080 --extended api.yaml  # With human-friendly output
+
+  Validation & Linting:
+    openapi-mcp validate api.yaml                 # Check for critical issues
+    openapi-mcp lint api.yaml                     # Comprehensive linting
+
+  HTTP Validation/Linting Services:
+    openapi-mcp --http=:8080 validate             # REST API for validation
+    openapi-mcp --http=:8080 lint                 # REST API for linting
+
+  Filtering & Documentation:
+    openapi-mcp --tag=admin api.yaml              # Only admin operations
+    openapi-mcp --dry-run api.yaml                # Preview generated tools
+    openapi-mcp --doc=tools.md api.yaml           # Generate documentation
+
+  Advanced Configuration:
+    openapi-mcp --base-url=https://api.prod.com api.yaml    # Override base URL
+    openapi-mcp --include-desc-regex="user.*" api.yaml      # Filter by description
+    openapi-mcp --no-confirm-dangerous api.yaml             # Skip confirmations
 
 Flags:
   --extended           Enable extended (human-friendly) output (default: minimal/agent)
@@ -101,7 +129,7 @@ Flags:
   --base-url           Override the base URL for HTTP calls
   --bearer-token       Bearer token for Authorization header
   --basic-auth         Basic auth (user:pass) for Authorization header
-  --http               Serve MCP over HTTP instead of stdio
+  --http               Serve over HTTP on this address (e.g., :8080). For MCP server: serves tools via HTTP. For validate/lint: creates REST API endpoints.
   --include-desc-regex Only include APIs whose description matches this regex
   --exclude-desc-regex Exclude APIs whose description matches this regex
   --dry-run            Print the generated MCP tool schemas as JSON and exit
@@ -115,6 +143,13 @@ Flags:
   --help, -h           Show help
 
 By default, output is minimal and agent-friendly. Use --extended for banners, help, and human-readable output.
+
+HTTP API Usage (for validate/lint commands):
+  curl -X POST http://localhost:8080/validate \
+    -H "Content-Type: application/json" \
+    -d '{"openapi_spec": "..."}'
+
+  # Endpoints: POST /validate, POST /lint, GET /health
 `)
 	os.Exit(0)
 }
