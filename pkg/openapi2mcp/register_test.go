@@ -193,3 +193,108 @@ func TestNumberVsIntegerTypes(t *testing.T) {
 		t.Error("numberField not found in schema")
 	}
 }
+
+func TestFormatPreservation(t *testing.T) {
+	// Create a spec with various format specifiers
+	doc := &openapi3.T{
+		Info: &openapi3.Info{Title: "Format Test API", Version: "1.0.0"},
+		Paths: openapi3.Paths{
+			"/test": &openapi3.PathItem{
+				Post: &openapi3.Operation{
+					OperationID: "testFormats",
+					Summary:     "Test format preservation",
+					RequestBody: &openapi3.RequestBodyRef{
+						Value: &openapi3.RequestBody{
+							Required: true,
+							Content: openapi3.Content{
+								"application/json": &openapi3.MediaType{
+									Schema: &openapi3.SchemaRef{
+										Value: &openapi3.Schema{
+											Type: "object",
+											Properties: openapi3.Schemas{
+												"int32Field": &openapi3.SchemaRef{
+													Value: &openapi3.Schema{Type: "integer", Format: "int32"},
+												},
+												"floatField": &openapi3.SchemaRef{
+													Value: &openapi3.Schema{Type: "number", Format: "float"},
+												},
+												"dateField": &openapi3.SchemaRef{
+													Value: &openapi3.Schema{Type: "string", Format: "date"},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Responses: openapi3.Responses{
+						"200": &openapi3.ResponseRef{
+							Value: &openapi3.Response{Description: stringPtr("OK")},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ops := ExtractOpenAPIOperations(doc)
+	if len(ops) == 0 {
+		t.Fatal("No operations extracted")
+	}
+
+	op := ops[0]
+	inputSchema := BuildInputSchema(op.Parameters, op.RequestBody)
+
+	// Navigate to request body properties
+	props, ok := inputSchema["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("Schema properties not found")
+	}
+
+	requestBodyProp, ok := props["requestBody"].(map[string]any)
+	if !ok {
+		t.Fatal("requestBody property not found")
+	}
+
+	requestBodyProps, ok := requestBodyProp["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("requestBody properties not found")
+	}
+
+	// Verify format preservation for int32Field
+	if int32Field, ok := requestBodyProps["int32Field"].(map[string]any); ok {
+		if format, ok := int32Field["format"].(string); !ok || format != "int32" {
+			t.Errorf("Expected int32Field to have format 'int32', got '%v'", format)
+		}
+		if fieldType, ok := int32Field["type"].(string); !ok || fieldType != "integer" {
+			t.Errorf("Expected int32Field to have type 'integer', got '%v'", fieldType)
+		}
+	} else {
+		t.Error("int32Field not found in schema")
+	}
+
+	// Verify format preservation for floatField
+	if floatField, ok := requestBodyProps["floatField"].(map[string]any); ok {
+		if format, ok := floatField["format"].(string); !ok || format != "float" {
+			t.Errorf("Expected floatField to have format 'float', got '%v'", format)
+		}
+		if fieldType, ok := floatField["type"].(string); !ok || fieldType != "number" {
+			t.Errorf("Expected floatField to have type 'number', got '%v'", fieldType)
+		}
+	} else {
+		t.Error("floatField not found in schema")
+	}
+
+	// Verify format preservation for dateField
+	if dateField, ok := requestBodyProps["dateField"].(map[string]any); ok {
+		if format, ok := dateField["format"].(string); !ok || format != "date" {
+			t.Errorf("Expected dateField to have format 'date', got '%v'", format)
+		}
+		if fieldType, ok := dateField["type"].(string); !ok || fieldType != "string" {
+			t.Errorf("Expected dateField to have type 'string', got '%v'", fieldType)
+		}
+	} else {
+		t.Error("dateField not found in schema")
+	}
+}

@@ -51,9 +51,12 @@ func extractProperty(s *openapi3.SchemaRef) map[string]any {
 		fmt.Fprintf(os.Stderr, "[WARN] discriminator used in schema at %p. Only basic support is provided.\n", val)
 		prop["discriminator"] = val.Discriminator
 	}
-	// Type, description, enum, default, example
+	// Type, format, description, enum, default, example
 	if val.Type != "" {
 		prop["type"] = val.Type
+	}
+	if val.Format != "" {
+		prop["format"] = val.Format
 	}
 	if val.Description != "" {
 		prop["description"] = val.Description

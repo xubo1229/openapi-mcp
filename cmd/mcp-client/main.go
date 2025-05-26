@@ -326,7 +326,9 @@ func main() {
 							switch typeStr {
 							case "string":
 								example[k] = "example"
-							case "number", "integer":
+							case "number":
+								example[k] = 123.45
+							case "integer":
 								example[k] = 123
 							case "boolean":
 								example[k] = true

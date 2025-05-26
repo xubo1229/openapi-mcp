@@ -121,7 +121,9 @@ func writeMarkdownDocFromSummaries(path string, summaries []map[string]any, doc 
 			switch typeStr {
 			case "string":
 				example[name] = "example"
-			case "number", "integer":
+			case "number":
+				example[name] = 123.45
+			case "integer":
 				example[name] = 123
 			case "boolean":
 				example[name] = true
