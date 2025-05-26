@@ -41,10 +41,6 @@ func LoadOpenAPISpecFromBytes(data []byte) (*openapi3.T, error) {
 	if err := doc.Validate(loader.Context); err != nil {
 		return nil, fmt.Errorf("OpenAPI spec validation failed: %w", err)
 	}
-	// Warn if not OpenAPI 3.0 or 3.1
-	if doc.OpenAPI != "3.0.0" && doc.OpenAPI != "3.1.0" {
-		fmt.Fprintf(os.Stderr, "[WARN] OpenAPI version %s is not 3.0.0 or 3.1.0. Some features may not be supported.\n", doc.OpenAPI)
-	}
 	return doc, nil
 }
 
