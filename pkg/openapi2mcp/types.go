@@ -5,8 +5,8 @@ package openapi2mcp
 import (
 	"encoding/json"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
+	mcpserver "github.com/jedisct1/openapi-mcp/internal/mcp-go/server"
 )
 
 // Tool is an alias for mcp.Tool, representing the definition of an MCP tool.

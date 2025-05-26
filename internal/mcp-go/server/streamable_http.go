@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/util"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/util"
 )
 
 // StreamableHTTPOption defines a function type for configuring StreamableHTTPServer

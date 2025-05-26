@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/server"
 )
 
 type InProcessTransport struct {

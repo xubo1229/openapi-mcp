@@ -15,8 +15,8 @@ import (
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/mark3labs/mcp-go/mcp"
-	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
+	mcpserver "github.com/jedisct1/openapi-mcp/internal/mcp-go/server"
 	"github.com/xeipuuv/gojsonschema"
 )
 

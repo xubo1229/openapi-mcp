@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
 )
 
 // StdioContextFunc is a function that takes an existing context and returns

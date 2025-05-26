@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/mark3labs/mcp-go/client/transport"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/client/transport"
 )
 
 func WithHeaders(headers map[string]string) transport.ClientOption {

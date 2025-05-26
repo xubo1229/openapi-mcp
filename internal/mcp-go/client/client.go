@@ -8,8 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/mark3labs/mcp-go/client/transport"
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/client/transport"
+	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
 )
 
 // Client implements the MCP client.
