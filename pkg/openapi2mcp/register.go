@@ -179,7 +179,9 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 						switch typeStr {
 						case "string":
 							exampleArgs[k] = "example"
-						case "number", "integer":
+						case "number":
+							exampleArgs[k] = 123.45
+						case "integer":
 							exampleArgs[k] = 123
 						case "boolean":
 							exampleArgs[k] = true
