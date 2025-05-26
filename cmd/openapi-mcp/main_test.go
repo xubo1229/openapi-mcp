@@ -618,3 +618,70 @@ paths:
 		t.Errorf("expected self-test failure error, got: %v", err)
 	}
 }
+
+func TestLintCommand(t *testing.T) {
+	// Test the lint functionality directly without going through main()
+	validSpec := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /foo:
+    get:
+      operationId: getFoo
+      summary: Get foo
+      description: Get a foo resource
+      tags: [foo]
+      responses:
+        '200':
+          description: OK
+`
+	specWithIssues := `openapi: 3.0.0
+info:
+  title: Test API
+  version: 1.0.0
+paths:
+  /foo:
+    get:
+      operationId: getFoo
+      responses:
+        '200':
+          description: OK
+` // missing summary, description, tags
+
+	// Test spec with no issues
+	doc, err := openapi2mcp.LoadOpenAPISpecFromString(validSpec)
+	if err != nil {
+		t.Fatalf("failed to load valid spec: %v", err)
+	}
+	
+	ops := openapi2mcp.ExtractOpenAPIOperations(doc)
+	var toolNames []string
+	for _, op := range ops {
+		toolNames = append(toolNames, op.OperationID)
+	}
+	
+	err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, true)
+	if err != nil {
+		t.Errorf("expected well-formed spec to pass lint, got error: %v", err)
+	}
+
+	// Test spec with linting issues
+	doc, err = openapi2mcp.LoadOpenAPISpecFromString(specWithIssues)
+	if err != nil {
+		t.Fatalf("failed to load spec with issues: %v", err)
+	}
+	
+	ops = openapi2mcp.ExtractOpenAPIOperations(doc)
+	toolNames = nil
+	for _, op := range ops {
+		toolNames = append(toolNames, op.OperationID)
+	}
+	
+	err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, true)
+	if err != nil {
+		t.Errorf("expected spec with warnings to pass lint (warnings don't fail), got error: %v", err)
+	}
+	// Note: The detailed linter reports warnings for missing summary/description/tags but doesn't fail
+	// This is correct behavior - warnings are informational, errors cause failure
+}

@@ -98,6 +98,12 @@
           <h3 class="feature-title">Library Integration</h3>
           <p>Import as a Go module in your projects for seamless integration with your own applications.</p>
         </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3 class="feature-title">Validation & Linting</h3>
+          <p>Powerful OpenAPI validation and linting with actionable suggestions. Validate for critical issues or lint for comprehensive best practices analysis.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -122,7 +128,16 @@ make
       </div>
       
       <div class="card mb-4">
-        <h3>2. Run the MCP Server</h3>
+        <h3>2. Validate & Lint (Optional)</h3>
+        <pre><code class="language-bash"># Validate your OpenAPI spec for critical issues
+bin/openapi-mcp validate examples/fastly-openapi-mcp.yaml
+
+# Comprehensive linting with best practice suggestions
+bin/openapi-mcp lint examples/fastly-openapi-mcp.yaml</code></pre>
+      </div>
+      
+      <div class="card mb-4">
+        <h3>3. Run the MCP Server</h3>
         <pre><code class="language-bash"># Basic usage (stdio mode)
 bin/openapi-mcp examples/fastly-openapi-mcp.yaml
 
@@ -134,7 +149,7 @@ bin/openapi-mcp --http=:8080 examples/fastly-openapi-mcp.yaml</code></pre>
       </div>
       
       <div class="card">
-        <h3>3. Use the Interactive Client</h3>
+        <h3>4. Use the Interactive Client</h3>
         <pre><code class="language-bash"># Start the client (connects to openapi-mcp via stdio)
 bin/mcp-client bin/openapi-mcp examples/fastly-openapi-mcp.yaml
 

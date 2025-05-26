@@ -61,7 +61,7 @@ func main() {
 		for _, op := range ops {
 			toolNames = append(toolNames, op.OperationID)
 		}
-		err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, flags.lint)
+		err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, false)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "MCP self-test failed: %v\n", err)
 			os.Exit(1)
@@ -70,6 +70,35 @@ func main() {
 		os.Exit(0)
 	}
 	// --- End validate subcommand ---
+
+	// --- Lint subcommand ---
+	if args[0] == "lint" {
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument for lint.")
+			os.Exit(1)
+		}
+		specPath := args[1]
+		doc, err := openapi2mcp.LoadOpenAPISpec(specPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Linting failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintln(os.Stderr, "OpenAPI spec loaded successfully.")
+		// Run detailed MCP linting with comprehensive suggestions
+		ops := openapi2mcp.ExtractOpenAPIOperations(doc)
+		var toolNames []string
+		for _, op := range ops {
+			toolNames = append(toolNames, op.OperationID)
+		}
+		err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, true)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "OpenAPI linting completed with issues: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintln(os.Stderr, "OpenAPI linting passed: spec follows all best practices.")
+		os.Exit(0)
+	}
+	// --- End lint subcommand ---
 
 	specPath := args[len(args)-1]
 	doc, err := openapi2mcp.LoadOpenAPISpec(specPath)

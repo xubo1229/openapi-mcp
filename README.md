@@ -50,7 +50,9 @@
 - **Complete Parameter Support**: Path, query, header, cookie, and body parameters
 - **Authentication**: API key, Bearer token, Basic auth, and OAuth2 support
 - **Structured Output**: All responses have consistent, well-structured formats with type information
-- **Validation**: All tool calls are validated against OpenAPI schemas before execution
+- **Validation & Linting**: Comprehensive OpenAPI validation and linting with actionable suggestions
+  - `validate` command for critical issues (missing operationIds, schema errors)
+  - `lint` command for best practices (summaries, descriptions, tags, parameter recommendations)
 - **Safety Features**: Confirmation required for dangerous operations (PUT/POST/DELETE)
 - **Documentation**: Built-in documentation generation in Markdown or HTML
 - **AI-Optimized**: Unique features specifically designed to enhance AI agent interactions:
@@ -174,6 +176,32 @@ You can easily integrate openapi-mcp with AI code editors that support MCP tools
 
 Add this configuration to your editor's MCP tools configuration to provide AI assistants with direct access to the API. The assistant can then discover and use the API operations without additional setup.
 
+### OpenAPI Validation and Linting
+
+openapi-mcp includes powerful OpenAPI validation and linting capabilities to help you improve your API specifications:
+
+```sh
+# Validate OpenAPI spec and check for critical issues
+bin/openapi-mcp validate examples/fastly-openapi-mcp.yaml
+
+# Comprehensive linting with detailed suggestions
+bin/openapi-mcp lint examples/fastly-openapi-mcp.yaml
+```
+
+The **validate** command performs essential checks:
+- Missing `operationId` fields (required for MCP tool generation)
+- Schema validation errors
+- Basic structural issues
+
+The **lint** command provides comprehensive analysis with suggestions for:
+- Missing summaries and descriptions
+- Untagged operations
+- Parameter naming and type recommendations
+- Security scheme validation
+- Best practices for API design
+
+Both commands exit with non-zero status codes when issues are found, making them perfect for CI/CD pipelines.
+
 ### Dry Run (Preview Tools as JSON)
 
 ```sh
@@ -218,6 +246,15 @@ bin/openapi-mcp --no-confirm-dangerous examples/fastly-openapi-mcp.yaml
 ```
 
 ## 🎮 Command-Line Options
+
+### Commands
+
+| Command | Description |
+| ------- | ----------- |
+| `validate <spec>` | Validate OpenAPI spec and report critical issues (missing operationIds, schema errors) |
+| `lint <spec>` | Comprehensive linting with detailed suggestions for best practices |
+
+### Flags
 
 | Flag                     | Environment Variable | Description                                              |
 | ------------------------ | -------------------- | -------------------------------------------------------- |

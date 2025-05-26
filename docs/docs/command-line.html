@@ -81,6 +81,53 @@
           The OpenAPI spec path is a required argument, and it should point to a valid OpenAPI 3.x YAML or JSON file.
         </p>
         
+        <h2>Commands</h2>
+        <p>
+          openapi-mcp supports several commands for different use cases:
+        </p>
+        
+        <div class="card mb-4">
+          <h3>Server Mode (Default)</h3>
+          <pre><code class="language-bash">openapi-mcp [flags] &lt;openapi-spec-path&gt;</code></pre>
+          <p>
+            Starts an MCP server that exposes all operations from the OpenAPI spec as tools. This is the default mode.
+          </p>
+        </div>
+        
+        <div class="card mb-4">
+          <h3>Validate Command</h3>
+          <pre><code class="language-bash">openapi-mcp [flags] validate &lt;openapi-spec-path&gt;</code></pre>
+          <p>
+            Validates the OpenAPI spec and reports critical issues that would prevent proper MCP tool generation. This includes:
+          </p>
+          <ul>
+            <li>Missing <code>operationId</code> fields (required for tool names)</li>
+            <li>Schema validation errors</li>
+            <li>Basic structural issues</li>
+          </ul>
+          <p>
+            Exits with non-zero status code if critical issues are found, making it perfect for CI/CD pipelines.
+          </p>
+        </div>
+        
+        <div class="card mb-4">
+          <h3>Lint Command</h3>
+          <pre><code class="language-bash">openapi-mcp [flags] lint &lt;openapi-spec-path&gt;</code></pre>
+          <p>
+            Performs comprehensive linting of the OpenAPI spec with detailed suggestions for best practices. This includes:
+          </p>
+          <ul>
+            <li>Missing summaries and descriptions</li>
+            <li>Untagged operations</li>
+            <li>Parameter naming and type recommendations</li>
+            <li>Security scheme validation</li>
+            <li>API design best practices</li>
+          </ul>
+          <p>
+            Provides actionable feedback to improve your API specification quality. Reports both errors and warnings.
+          </p>
+        </div>
+        
         <h2>Flag Categories</h2>
         <p>
           The command-line flags are grouped into several categories:
@@ -311,6 +358,24 @@
           <pre><code class="language-bash">bin/openapi-mcp examples/fastly-openapi-mcp.yaml</code></pre>
           <p>
             This loads the OpenAPI spec, validates it, and starts an MCP server in stdio mode.
+          </p>
+        </div>
+        
+        <div class="card mb-4">
+          <h3>Validate OpenAPI Spec</h3>
+          <pre><code class="language-bash">bin/openapi-mcp validate examples/fastly-openapi-mcp.yaml</code></pre>
+          <p>
+            This validates the OpenAPI spec and reports any critical issues that would prevent proper tool generation.
+            Perfect for CI/CD pipelines to ensure spec quality.
+          </p>
+        </div>
+        
+        <div class="card mb-4">
+          <h3>Comprehensive Linting</h3>
+          <pre><code class="language-bash">bin/openapi-mcp lint examples/fastly-openapi-mcp.yaml</code></pre>
+          <p>
+            This performs detailed linting with suggestions for best practices, including missing summaries, 
+            descriptions, tags, and parameter recommendations.
           </p>
         </div>
         
