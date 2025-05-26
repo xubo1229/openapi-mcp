@@ -88,6 +88,10 @@ func printHelp() {
 
 Usage:
   openapi-mcp [flags] <openapi-spec-path>
+  openapi-mcp validate <openapi-spec-path>
+
+Commands:
+  validate <openapi-spec-path>  Validate the OpenAPI spec and report actionable errors (does not start a server)
 
 Flags:
   --extended           Enable extended (human-friendly) output (default: minimal/agent)

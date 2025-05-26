@@ -27,6 +27,37 @@ func main() {
 		printHelp()
 		os.Exit(1)
 	}
+
+	// --- Validate subcommand ---
+	if args[0] == "validate" {
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument for validate.")
+			os.Exit(1)
+		}
+		specPath := args[1]
+		doc, err := openapi2mcp.LoadOpenAPISpec(specPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Validation failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintln(os.Stderr, "OpenAPI spec loaded and validated successfully.")
+		// Run MCP self-test for actionable errors
+		// We'll simulate tool names as if all operationIds are present
+		ops := openapi2mcp.ExtractOpenAPIOperations(doc)
+		var toolNames []string
+		for _, op := range ops {
+			toolNames = append(toolNames, op.OperationID)
+		}
+		err = openapi2mcp.SelfTestOpenAPIMCP(doc, toolNames)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "MCP self-test failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintln(os.Stderr, "MCP self-test passed: all tools and required arguments are present.")
+		os.Exit(0)
+	}
+	// --- End validate subcommand ---
+
 	specPath := args[len(args)-1]
 	doc, err := openapi2mcp.LoadOpenAPISpec(specPath)
 	if err != nil {
