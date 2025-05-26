@@ -30,6 +30,7 @@ type cliFlags struct {
 	postHookCmd        string
 	noConfirmDangerous bool
 	args               []string
+	lint               bool
 }
 
 // parseFlags parses all CLI flags and returns a cliFlags struct.
@@ -57,6 +58,7 @@ func parseFlags() *cliFlags {
 	flag.StringVar(&flags.docFormat, "doc-format", "markdown", "Documentation format: markdown (default) or html")
 	flag.StringVar(&flags.postHookCmd, "post-hook-cmd", "", "Command to post-process the generated tool schema JSON (used in --dry-run or --doc mode)")
 	flag.BoolVar(&flags.noConfirmDangerous, "no-confirm-dangerous", false, "Disable confirmation prompt for dangerous (PUT/POST/DELETE) actions in tool descriptions")
+	flag.BoolVar(&flags.lint, "lint", false, "Enable detailed OpenAPI linting and suggestions during validation")
 	flag.Parse()
 	flags.args = flag.Args()
 	if flags.extended {
@@ -88,7 +90,9 @@ func printHelp() {
 
 Usage:
   openapi-mcp [flags] <openapi-spec-path>
-  openapi-mcp validate <openapi-spec-path>
+  openapi-mcp [flags] validate <openapi-spec-path>
+
+Note: All flags, including --lint, must be specified before the 'validate' command.
 
 Commands:
   validate <openapi-spec-path>  Validate the OpenAPI spec and report actionable errors (does not start a server)
@@ -110,6 +114,7 @@ Flags:
   --summary            Print a summary for CI
   --tag                Only include tools with the given tag
   --diff               Compare generated tools with a reference file
+  --lint               Enable detailed OpenAPI linting and suggestions during validation (for validate command)
   --help, -h           Show help
 
 By default, output is minimal and agent-friendly. Use --extended for banners, help, and human-readable output.

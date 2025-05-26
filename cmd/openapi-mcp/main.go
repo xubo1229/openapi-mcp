@@ -28,6 +28,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Enforce: --lint (and all flags) must come before 'validate' command
+	for i, arg := range os.Args[1:] {
+		if arg == "validate" {
+			for _, after := range os.Args[i+2:] {
+				if after == "--lint" {
+					fmt.Fprintln(os.Stderr, "Error: --lint must be specified before the 'validate' command.")
+					fmt.Fprintln(os.Stderr, "Usage: openapi-mcp --lint validate <openapi-spec-path>")
+					os.Exit(1)
+				}
+			}
+		}
+	}
+
 	// --- Validate subcommand ---
 	if args[0] == "validate" {
 		if len(args) < 2 {
@@ -48,7 +61,7 @@ func main() {
 		for _, op := range ops {
 			toolNames = append(toolNames, op.OperationID)
 		}
-		err = openapi2mcp.SelfTestOpenAPIMCP(doc, toolNames)
+		err = openapi2mcp.SelfTestOpenAPIMCPWithOptions(doc, toolNames, flags.lint)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "MCP self-test failed: %v\n", err)
 			os.Exit(1)
