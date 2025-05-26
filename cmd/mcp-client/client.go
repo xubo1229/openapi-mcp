@@ -100,7 +100,31 @@ func clientMain() {
 	makeCompleter := func() *readline.PrefixCompleter {
 		callItems := []readline.PrefixCompleterInterface{}
 		for _, name := range toolNames {
-			callItems = append(callItems, readline.PcItem(name))
+			// Argument completion for each tool
+			argItems := []readline.PrefixCompleterInterface{}
+			if schema, ok := toolSchemas[name]; ok {
+				if props, ok := schema["properties"].(map[string]any); ok {
+					for arg, v := range props {
+						// Suggest possible values for enums or booleans
+						if vmap, ok := v.(map[string]any); ok {
+							if enumVals, ok := vmap["enum"].([]any); ok && len(enumVals) > 0 {
+								valItems := []readline.PrefixCompleterInterface{}
+								for _, ev := range enumVals {
+									valItems = append(valItems, readline.PcItem(fmt.Sprintf("%v", ev)))
+								}
+								argItems = append(argItems, readline.PcItem(arg, valItems...))
+								continue
+							}
+							if t, ok := vmap["type"].(string); ok && t == "boolean" {
+								argItems = append(argItems, readline.PcItem(arg, readline.PcItem("true"), readline.PcItem("false")))
+								continue
+							}
+						}
+						argItems = append(argItems, readline.PcItem(arg))
+					}
+				}
+			}
+			callItems = append(callItems, readline.PcItem(name, argItems...))
 		}
 		schemaItems := []readline.PrefixCompleterInterface{}
 		for _, name := range toolNames {
@@ -113,6 +137,7 @@ func clientMain() {
 			readline.PcItem("quit"),
 			readline.PcItem("call", callItems...),
 			readline.PcItem("schema", schemaItems...),
+			readline.PcItem("history"),
 		)
 	}
 
