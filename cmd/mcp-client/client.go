@@ -230,6 +230,7 @@ func clientMain() {
   call        Call a tool with arguments
   list        List available tools
   version     Show version info
+  history     View command history
 `)
 			continue
 		}
@@ -322,6 +323,33 @@ func clientMain() {
 			}
 			id++
 			json.NewEncoder(serverIn).Encode(msg)
+			continue
+		}
+		if line == "history" || strings.HasPrefix(line, "history ") {
+			query := strings.TrimSpace(line[len("history"):])
+			historyFile := os.ExpandEnv("$HOME/.mcp_client_history")
+			file, err := os.Open(historyFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[error] Could not open history file: %v\n", err)
+				continue
+			}
+			defer file.Close()
+			scanner := bufio.NewScanner(file)
+			var lines []string
+			for scanner.Scan() {
+				lines = append(lines, scanner.Text())
+			}
+			if query == "" {
+				for i, l := range lines {
+					fmt.Printf("%4d: %s\n", i+1, l)
+				}
+			} else {
+				for i, l := range lines {
+					if strings.Contains(l, query) {
+						fmt.Printf("%4d: %s\n", i+1, l)
+					}
+				}
+			}
 			continue
 		}
 		if line == "" {
