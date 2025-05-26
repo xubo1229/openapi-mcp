@@ -90,10 +90,12 @@ Usage:
   openapi-mcp [flags] <openapi-spec-path>
   openapi-mcp [flags] validate <openapi-spec-path>
   openapi-mcp [flags] lint <openapi-spec-path>
+  openapi-mcp [flags] filter <openapi-spec-path>
 
 Commands:
   validate <openapi-spec-path>  Validate the OpenAPI spec and report actionable errors (with --http: starts validation API server)
   lint <openapi-spec-path>      Perform detailed OpenAPI linting with comprehensive suggestions (with --http: starts linting API server)
+  filter <openapi-spec-path>    Output a filtered list of operations as JSON, applying --tag, --include-desc-regex, and --exclude-desc-regex (no server)
 
 Examples:
 
@@ -117,6 +119,8 @@ Examples:
     openapi-mcp --tag=admin api.yaml              # Only admin operations
     openapi-mcp --dry-run api.yaml                # Preview generated tools
     openapi-mcp --doc=tools.md api.yaml           # Generate documentation
+    openapi-mcp filter --tag=admin api.yaml       # Output only admin-tagged operations as JSON
+    openapi-mcp filter --include-desc-regex=foo api.yaml # Output operations whose description matches 'foo'
 
   Advanced Configuration:
     openapi-mcp --base-url=https://api.prod.com api.yaml    # Override base URL

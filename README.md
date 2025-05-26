@@ -28,6 +28,9 @@
     - [2. Use the Interactive Client](#2-use-the-interactive-client)
   - [🔒 Authentication](#-authentication)
   - [🛠️ Usage Examples](#️-usage-examples)
+    - [Integration with AI Code Editors](#integration-with-ai-code-editors)
+    - [OpenAPI Validation and Linting](#openapi-validation-and-linting)
+      - [HTTP API for Validation and Linting](#http-api-for-validation-and-linting)
     - [Dry Run (Preview Tools as JSON)](#dry-run-preview-tools-as-json)
     - [Generate Documentation](#generate-documentation)
     - [Filter Operations by Tag](#filter-operations-by-tag)
@@ -36,6 +39,8 @@
     - [Post-Process Schema with External Command](#post-process-schema-with-external-command)
     - [Disable Confirmation for Dangerous Actions](#disable-confirmation-for-dangerous-actions)
   - [🎮 Command-Line Options](#-command-line-options)
+    - [Commands](#commands)
+    - [Flags](#flags)
   - [📚 Library Usage](#-library-usage)
   - [📊 Output Structure](#-output-structure)
   - [🛡️ Safety Features](#️-safety-features)
@@ -307,10 +312,11 @@ bin/openapi-mcp --no-confirm-dangerous examples/fastly-openapi-mcp.yaml
 
 ### Commands
 
-| Command | Description |
-| ------- | ----------- |
-| `validate <spec>` | Validate OpenAPI spec and report critical issues (missing operationIds, schema errors) |
-| `lint <spec>` | Comprehensive linting with detailed suggestions for best practices |
+| Command           | Description                                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `validate <spec>` | Validate OpenAPI spec and report critical issues (missing operationIds, schema errors)                                         |
+| `lint <spec>`     | Comprehensive linting with detailed suggestions for best practices                                                             |
+| `filter <spec>`   | Output a filtered list of operations as JSON, applying `--tag`, `--include-desc-regex`, and `--exclude-desc-regex` (no server) |
 
 ### Flags
 

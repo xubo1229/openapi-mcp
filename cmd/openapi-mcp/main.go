@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -121,6 +122,80 @@ func main() {
 		os.Exit(0)
 	}
 	// --- End lint subcommand ---
+
+	// --- Filter subcommand ---
+	if args[0] == "filter" {
+		if len(args) < 2 {
+			fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument for filter.")
+			os.Exit(1)
+		}
+		specPath := args[1]
+		doc, err := openapi2mcp.LoadOpenAPISpec(specPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Could not load OpenAPI spec: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Compile regex filters if provided
+		var includeRegex, excludeRegex *regexp.Regexp
+		if val := os.Getenv("INCLUDE_DESC_REGEX"); val != "" {
+			includeRegex, err = regexp.Compile(val)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Invalid INCLUDE_DESC_REGEX: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		if val := os.Getenv("EXCLUDE_DESC_REGEX"); val != "" {
+			excludeRegex, err = regexp.Compile(val)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Invalid EXCLUDE_DESC_REGEX: %v\n", err)
+				os.Exit(1)
+			}
+		}
+
+		ops := openapi2mcp.ExtractFilteredOpenAPIOperations(doc, includeRegex, excludeRegex)
+		// Apply tag filter if present
+		if len(flags.tagFlags) > 0 {
+			var filtered []openapi2mcp.OpenAPIOperation
+			for _, op := range ops {
+				found := false
+				for _, tag := range op.Tags {
+					for _, want := range flags.tagFlags {
+						if tag == want {
+							found = true
+							break
+						}
+					}
+					if found {
+						break
+					}
+				}
+				if found {
+					filtered = append(filtered, op)
+				}
+			}
+			ops = filtered
+		}
+		// Output filtered operations as JSON
+		toolSummaries := make([]map[string]any, 0, len(ops))
+		for _, op := range ops {
+			name := op.OperationID
+			desc := op.Description
+			if desc == "" {
+				desc = op.Summary
+			}
+			inputSchema := openapi2mcp.BuildInputSchema(op.Parameters, op.RequestBody)
+			toolSummaries = append(toolSummaries, map[string]any{
+				"name":        name,
+				"description": desc,
+				"tags":        op.Tags,
+				"inputSchema": inputSchema,
+			})
+		}
+		jsonBytes, _ := json.MarshalIndent(toolSummaries, "", "  ")
+		fmt.Println(string(jsonBytes))
+		os.Exit(0)
+	}
 
 	specPath := args[len(args)-1]
 	doc, err := openapi2mcp.LoadOpenAPISpec(specPath)
