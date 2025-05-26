@@ -17,6 +17,15 @@ import (
 )
 
 func TestRegisterOpenAPITools(t *testing.T) {
+	// Start a mock HTTP server
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+		w.Write([]byte("404 page not found"))
+	}))
+	defer ts.Close()
+	os.Setenv("OPENAPI_BASE_URL", ts.URL)
+	defer os.Unsetenv("OPENAPI_BASE_URL")
+
 	doc := &openapi3.T{
 		Paths: openapi3.Paths{
 			"/foo": &openapi3.PathItem{
@@ -128,6 +137,7 @@ func TestHTTPOpenAPIToolHandler(t *testing.T) {
 	}))
 	defer ts.Close()
 	os.Setenv("OPENAPI_BASE_URL", ts.URL)
+	defer os.Unsetenv("OPENAPI_BASE_URL")
 
 	doc := &openapi3.T{
 		Paths: openapi3.Paths{
