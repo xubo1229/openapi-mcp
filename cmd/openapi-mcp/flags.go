@@ -130,10 +130,15 @@ Examples:
     openapi-mcp api.yaml                          # Start stdio MCP server
     openapi-mcp --api-key=key123 api.yaml         # With API authentication
 
-  MCP Server over HTTP:
+  MCP Server over HTTP (single API):
     openapi-mcp --http=:8080 api.yaml             # HTTP server on port 8080
     openapi-mcp --http=:8080 --extended api.yaml  # With human-friendly output
-    
+
+  MCP Server over HTTP (multiple APIs):
+    openapi-mcp --http=:8080 --mount /petstore:petstore.yaml --mount /books:books.yaml
+    # Each API is served at its own base path (e.g., /petstore/sse, /books/sse)
+    # If --mount is used, positional OpenAPI spec arguments are ignored in HTTP mode.
+
     # With authentication via HTTP headers:
     curl -H "X-API-Key: your_key" http://localhost:8080/mcp -d '...'
     curl -H "Authorization: Bearer your_token" http://localhost:8080/mcp -d '...'

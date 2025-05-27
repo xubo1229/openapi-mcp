@@ -23,6 +23,16 @@ func main() {
 	setEnvFromFlags(flags)
 
 	args := flags.args
+
+	// If --mount is used with --http, do not require a positional argument
+	if flags.httpAddr != "" && len(flags.mounts) > 0 {
+		if len(args) > 0 {
+			fmt.Fprintln(os.Stderr, "[WARN] Positional OpenAPI spec arguments are ignored when using --mount. Only --mount will be used.")
+		}
+		startServer(flags, nil, nil)
+		return
+	}
+
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument.")
 		printHelp()

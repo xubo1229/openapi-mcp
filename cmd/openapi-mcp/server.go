@@ -16,6 +16,9 @@ import (
 // It registers all OpenAPI operations as MCP tools and starts the server.
 func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *openapi3.T) {
 	if flags.httpAddr != "" && len(flags.mounts) > 0 {
+		if len(flags.args) > 0 {
+			fmt.Fprintln(os.Stderr, "[WARN] Positional OpenAPI spec arguments are ignored when using --mount. Only --mount will be used.")
+		}
 		mux := http.NewServeMux()
 		for _, m := range flags.mounts {
 			fmt.Fprintf(os.Stderr, "Loading OpenAPI spec for mount %s: %s...\n", m.BasePath, m.SpecPath)
@@ -23,7 +26,7 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 			if err != nil {
 				log.Fatalf("Failed to load OpenAPI spec for %s: %v", m.BasePath, err)
 			}
-			ops := openapi2mcp.ExtractOpenAPIOperations(d)
+			ops = openapi2mcp.ExtractOpenAPIOperations(d)
 			srv := openapi2mcp.NewServerWithOps("openapi-mcp", d.Info.Version, d, ops)
 			handler := makeMCPHandler(srv, m.BasePath)
 			mux.Handle(m.BasePath+"/", handler)
@@ -37,19 +40,41 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 		return
 	}
 
-	srv := openapi2mcp.NewServerWithOps("openapi-mcp", doc.Info.Version, doc, ops)
-	fmt.Fprintln(os.Stderr, "Registered all OpenAPI operations as MCP tools.")
-
 	if flags.httpAddr != "" {
+		if len(flags.args) != 1 {
+			fmt.Fprintln(os.Stderr, "Usage: openapi-mcp --http=:8080 <openapi-spec-path>")
+			os.Exit(2)
+		}
+		specPath := flags.args[0]
+		d, err := openapi3.NewLoader().LoadFromFile(specPath)
+		if err != nil {
+			log.Fatalf("Failed to load OpenAPI spec: %v", err)
+		}
+		ops := openapi2mcp.ExtractOpenAPIOperations(d)
+		srv := openapi2mcp.NewServerWithOps("openapi-mcp", d.Info.Version, d, ops)
 		fmt.Fprintf(os.Stderr, "Starting MCP server (HTTP) on %s...\n", flags.httpAddr)
 		if err := openapi2mcp.ServeHTTP(srv, flags.httpAddr, "/mcp"); err != nil {
 			log.Fatalf("Failed to start MCP HTTP server: %v", err)
 		}
-	} else {
-		fmt.Fprintln(os.Stderr, "Starting MCP server (stdio)...")
-		if err := openapi2mcp.ServeStdio(srv); err != nil {
-			log.Fatalf("Failed to start MCP server: %v", err)
-		}
+		return
+	}
+
+	// stdio mode: require a single positional OpenAPI spec argument
+	if len(flags.args) != 1 {
+		fmt.Fprintln(os.Stderr, "Usage: openapi-mcp <openapi-spec-path>")
+		os.Exit(2)
+	}
+	specPath := flags.args[0]
+	d, err := openapi3.NewLoader().LoadFromFile(specPath)
+	if err != nil {
+		log.Fatalf("Failed to load OpenAPI spec: %v", err)
+	}
+	ops = openapi2mcp.ExtractOpenAPIOperations(d)
+	srv := openapi2mcp.NewServerWithOps("openapi-mcp", d.Info.Version, d, ops)
+	fmt.Fprintln(os.Stderr, "Registered all OpenAPI operations as MCP tools.")
+	fmt.Fprintln(os.Stderr, "Starting MCP server (stdio)...")
+	if err := openapi2mcp.ServeStdio(srv); err != nil {
+		log.Fatalf("Failed to start MCP server: %v", err)
 	}
 }
 
