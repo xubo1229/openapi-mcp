@@ -5,7 +5,7 @@ package server
 import (
 	"context"
 
-	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
+	"github.com/jedisct1/openapi-mcp/pkg/mcp/mcp"
 )
 
 // OnRegisterSessionHookFunc is a hook that will be called when a new session is registered.

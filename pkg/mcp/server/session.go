@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
+	"github.com/jedisct1/openapi-mcp/pkg/mcp/mcp"
 )
 
 // ClientSession represents an active session that can be used by MCPServer to interact with client.

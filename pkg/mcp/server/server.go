@@ -10,7 +10,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
+	"github.com/jedisct1/openapi-mcp/pkg/mcp/mcp"
 )
 
 // resourceEntry holds both a resource and its handler

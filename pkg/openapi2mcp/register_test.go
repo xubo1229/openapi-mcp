@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/jedisct1/openapi-mcp/internal/mcp-go/server"
+	"github.com/jedisct1/openapi-mcp/pkg/mcp/server"
 )
 
 func stringPtr(s string) *string {

@@ -1,4 +1,4 @@
-module github.com/jedisct1/openapi-mcp/internal/mcp-go
+module github.com/jedisct1/openapi-mcp/pkg/mcp
 
 go 1.23
 

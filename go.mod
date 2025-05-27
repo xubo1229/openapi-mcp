@@ -7,7 +7,7 @@ toolchain go1.24.3
 require (
 	github.com/chzyer/readline v1.5.1
 	github.com/getkin/kin-openapi v0.121.0
-	github.com/jedisct1/openapi-mcp/internal/mcp-go v0.2.0
+	github.com/jedisct1/openapi-mcp/pkg/mcp v0.2.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 )
 
@@ -28,4 +28,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/jedisct1/openapi-mcp/internal/mcp-go => ./internal/mcp-go
+replace github.com/jedisct1/openapi-mcp/pkg/mcp => ./pkg/mcp

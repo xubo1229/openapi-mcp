@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	mcpserver "github.com/jedisct1/openapi-mcp/internal/mcp-go/server"
+	mcpserver "github.com/jedisct1/openapi-mcp/pkg/mcp/server"
 )
 
 // NewServer creates a new MCP server, registers all OpenAPI tools, and returns the server.

@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/jedisct1/openapi-mcp/internal/mcp-go/mcp"
+	"github.com/jedisct1/openapi-mcp/pkg/mcp/mcp"
 )
 
 // HandleMessage processes an incoming JSON-RPC message and returns an appropriate response
