@@ -16,6 +16,21 @@ import (
 // It registers all OpenAPI operations as MCP tools and starts the server.
 func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *openapi3.T) {
 	if flags.httpAddr != "" && len(flags.mounts) > 0 {
+		// Check for duplicate base paths
+		basePathCount := make(map[string]int)
+		for _, m := range flags.mounts {
+			basePathCount[m.BasePath]++
+		}
+		var dups []string
+		for base, count := range basePathCount {
+			if count > 1 {
+				dups = append(dups, base)
+			}
+		}
+		if len(dups) > 0 {
+			fmt.Fprintf(os.Stderr, "Error: duplicate --mount base path(s): %v\nEach base path may only be used once.\n", dups)
+			os.Exit(2)
+		}
 		if len(flags.args) > 0 {
 			fmt.Fprintln(os.Stderr, "[WARN] Positional OpenAPI spec arguments are ignored when using --mount. Only --mount will be used.")
 		}
