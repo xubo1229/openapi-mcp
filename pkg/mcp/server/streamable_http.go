@@ -347,17 +347,28 @@ func (s *StreamableHTTPServer) handleGet(w http.ResponseWriter, r *http.Request)
 	}
 	flusher.Flush()
 
+	// Send initial endpoint event with session information
+	endpointData := fmt.Sprintf("?sessionId=%s", sessionID)
+	if err := writeSSEEventWithType(w, "endpoint", endpointData); err != nil {
+		s.logger.Errorf("Failed to write initial endpoint event: %v", err)
+		return
+	}
+	flusher.Flush()
+
 	// Start notification handler for this session
 	done := make(chan struct{})
 	defer close(done)
 	writeChan := make(chan any, 16)
-	defer close(writeChan)
 
 	go func() {
 		for {
 			select {
 			case nt := <-session.notificationChannel:
-				writeChan <- &nt
+				select {
+				case writeChan <- &nt:
+				case <-done:
+					return
+				}
 			case <-done:
 				return
 			}
@@ -378,7 +389,11 @@ func (s *StreamableHTTPServer) handleGet(w http.ResponseWriter, r *http.Request)
 			for {
 				select {
 				case <-ticker.C:
-					writeChan <- message
+					select {
+					case writeChan <- message:
+					case <-done:
+						return
+					}
 				case <-done:
 					return
 				}
@@ -432,6 +447,25 @@ func writeSSEEvent(w io.Writer, data any) error {
 		return fmt.Errorf("failed to marshal data: %w", err)
 	}
 	_, err = fmt.Fprintf(w, "event: message\ndata: %s\n\n", jsonData)
+	if err != nil {
+		return fmt.Errorf("failed to write SSE event: %w", err)
+	}
+	return nil
+}
+
+func writeSSEEventWithType(w io.Writer, eventType string, data any) error {
+	var dataStr string
+	switch v := data.(type) {
+	case string:
+		dataStr = v
+	default:
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			return fmt.Errorf("failed to marshal data: %w", err)
+		}
+		dataStr = string(jsonData)
+	}
+	_, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, dataStr)
 	if err != nil {
 		return fmt.Errorf("failed to write SSE event: %w", err)
 	}

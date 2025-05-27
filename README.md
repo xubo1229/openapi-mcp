@@ -183,6 +183,42 @@ curl -H "Authorization: Basic base64_credentials" http://localhost:8080/mcp -d '
 
 Authentication is automatically applied to the appropriate endpoints as defined in your OpenAPI spec. HTTP header authentication takes precedence over environment variables for the duration of each request.
 
+### HTTP SSE Client Development
+
+When using HTTP mode, openapi-mcp serves an SSE (Server-Sent Events) based MCP server. For developers building HTTP clients, the package provides convenient URL helper functions:
+
+```go
+import "github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
+
+// Get the SSE connection URL
+sseURL := openapi2mcp.GetSSEURL("http://localhost:8080")
+// Returns: "http://localhost:8080/mcp/sse"
+
+// Get the message endpoint URL (after receiving session ID from SSE)
+messageURL := openapi2mcp.GetMessageURL("http://localhost:8080", sessionID)
+// Returns: "http://localhost:8080/mcp/message?sessionId=<sessionID>"
+```
+
+**Client Connection Flow:**
+1. Connect to the SSE endpoint to establish a persistent connection
+2. Receive an `endpoint` event containing the session ID
+3. Send JSON-RPC requests to the message endpoint using the session ID
+4. Receive responses and notifications via the SSE stream
+
+**Example with curl:**
+```sh
+# Step 1: Connect to SSE endpoint (keep connection open)
+curl -N http://localhost:8080/mcp/sse
+
+# Output: event: endpoint
+#         data: /mcp/message?sessionId=<session-id>
+
+# Step 2: Send JSON-RPC requests (in another terminal)
+curl -X POST http://localhost:8080/mcp/message?sessionId=<session-id> \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
 ## 🛠️ Usage Examples
 
 ### Integration with AI Code Editors

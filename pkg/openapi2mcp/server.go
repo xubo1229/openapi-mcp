@@ -3,8 +3,10 @@ package openapi2mcp
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	mcpserver "github.com/jedisct1/openapi-mcp/pkg/mcp/server"
@@ -117,7 +119,7 @@ func ServeStdio(server *mcpserver.MCPServer) error {
 	return mcpserver.ServeStdio(server)
 }
 
-// ServeHTTP starts the MCP server using HTTP (wraps mcpserver.NewStreamableHTTPServer and http.ListenAndServe).
+// ServeHTTP starts the MCP server using HTTP SSE (wraps mcpserver.NewSSEServer and Start).
 // addr is the address to listen on, e.g. ":8080".
 // Returns an error if the server fails to start.
 // Example usage for ServeHTTP:
@@ -125,7 +127,39 @@ func ServeStdio(server *mcpserver.MCPServer) error {
 //	srv, _ := openapi2mcp.NewServer("petstore", "1.0.0", doc)
 //	openapi2mcp.ServeHTTP(srv, ":8080")
 func ServeHTTP(server *mcpserver.MCPServer, addr string) error {
-	httpServer := mcpserver.NewStreamableHTTPServer(server,
-		mcpserver.WithHTTPContextFunc(authContextFunc))
-	return http.ListenAndServe(addr, httpServer)
+	// Convert the authContextFunc to SSEContextFunc signature
+	sseAuthContextFunc := func(ctx context.Context, r *http.Request) context.Context {
+		return authContextFunc(ctx, r)
+	}
+
+	sseServer := mcpserver.NewSSEServer(server,
+		mcpserver.WithSSEContextFunc(sseAuthContextFunc),
+		mcpserver.WithStaticBasePath("/mcp"),
+		mcpserver.WithSSEEndpoint("/sse"),
+		mcpserver.WithMessageEndpoint("/message"))
+	return sseServer.Start(addr)
+}
+
+// GetSSEURL returns the URL for establishing an SSE connection to the MCP server.
+// baseURL should be the base URL where the server is hosted (e.g., "http://localhost:8080").
+// Clients should connect to this URL to establish a persistent Server-Sent Events connection.
+// Example usage:
+//
+//	url := openapi2mcp.GetSSEURL("http://localhost:8080")
+//	// Returns: "http://localhost:8080/mcp/sse"
+func GetSSEURL(baseURL string) string {
+	baseURL = strings.TrimSuffix(baseURL, "/")
+	return baseURL + "/mcp/sse"
+}
+
+// GetMessageURL returns the URL for sending JSON-RPC requests to the MCP server.
+// baseURL should be the base URL where the server is hosted (e.g., "http://localhost:8080").
+// sessionID should be the session ID received from the SSE endpoint event.
+// Example usage:
+//
+//	url := openapi2mcp.GetMessageURL("http://localhost:8080", "session-id-123")
+//	// Returns: "http://localhost:8080/mcp/message?sessionId=session-id-123"
+func GetMessageURL(baseURL, sessionID string) string {
+	baseURL = strings.TrimSuffix(baseURL, "/")
+	return fmt.Sprintf("%s/mcp/message?sessionId=%s", baseURL, sessionID)
 }
