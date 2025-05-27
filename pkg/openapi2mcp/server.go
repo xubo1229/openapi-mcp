@@ -190,3 +190,25 @@ func GetMessageURL(baseURL, basePath, sessionID string) string {
 func GetMessageURLDefault(baseURL, sessionID string) string {
 	return GetMessageURL(baseURL, "/mcp", sessionID)
 }
+
+// HandlerForBasePath returns an http.Handler that serves the given MCP server at the specified basePath.
+// This is useful for multi-mount HTTP servers, where you want to serve multiple OpenAPI schemas at different URL paths.
+// Example usage:
+//
+//	handler := openapi2mcp.HandlerForBasePath(srv, "/petstore")
+//	mux.Handle("/petstore/", handler)
+func HandlerForBasePath(server *mcpserver.MCPServer, basePath string) http.Handler {
+	sseAuthContextFunc := func(ctx context.Context, r *http.Request) context.Context {
+		return authContextFunc(ctx, r)
+	}
+	if basePath == "" {
+		basePath = "/mcp"
+	}
+	sseServer := mcpserver.NewSSEServer(server,
+		mcpserver.WithSSEContextFunc(sseAuthContextFunc),
+		mcpserver.WithStaticBasePath(basePath),
+		mcpserver.WithSSEEndpoint("/sse"),
+		mcpserver.WithMessageEndpoint("/message"),
+	)
+	return sseServer
+}

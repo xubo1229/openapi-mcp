@@ -180,6 +180,15 @@ openapi-mcp --http=:8080 lint</code></pre>
                 </td>
               </tr>
               <tr>
+                <td><code>--mount /base:path/to/spec.yaml</code></td>
+                <td>-</td>
+                <td>
+                  Mount an OpenAPI spec at a base path (repeatable, can be used multiple times).<br>
+                  Example: <code>--mount /petstore:petstore.yaml --mount /books:books.yaml</code><br>
+                  This will serve the Petstore API at <code>/petstore/sse</code>, <code>/petstore/message</code>, etc., and the Books API at <code>/books/sse</code>, <code>/books/message</code>, etc.
+                </td>
+              </tr>
+              <tr>
                 <td><code>--base-url=URL</code></td>
                 <td><code>OPENAPI_BASE_URL</code></td>
                 <td>
@@ -190,6 +199,13 @@ openapi-mcp --http=:8080 lint</code></pre>
             </tbody>
           </table>
         </div>
+        
+        <h3>Multi-Mount Example</h3>
+        <pre><code class="language-bash">openapi-mcp --http=:8080 --mount /petstore:petstore.yaml --mount /books:books.yaml
+</code></pre>
+        <p>
+        This will serve multiple OpenAPI schemas at different base paths. Each API will be available at its own prefix (e.g., <code>/petstore/sse</code>, <code>/books/sse</code>).
+        </p>
         
         <h2 id="authentication-flags">Authentication Flags</h2>
         

@@ -4,21 +4,45 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	mcpserver "github.com/jedisct1/openapi-mcp/pkg/mcp/server"
 	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
 )
 
 // startServer starts the MCP server in stdio or HTTP mode, based on CLI flags.
 // It registers all OpenAPI operations as MCP tools and starts the server.
 func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *openapi3.T) {
+	if flags.httpAddr != "" && len(flags.mounts) > 0 {
+		mux := http.NewServeMux()
+		for _, m := range flags.mounts {
+			fmt.Fprintf(os.Stderr, "Loading OpenAPI spec for mount %s: %s...\n", m.BasePath, m.SpecPath)
+			d, err := openapi3.NewLoader().LoadFromFile(m.SpecPath)
+			if err != nil {
+				log.Fatalf("Failed to load OpenAPI spec for %s: %v", m.BasePath, err)
+			}
+			ops := openapi2mcp.ExtractOpenAPIOperations(d)
+			srv := openapi2mcp.NewServerWithOps("openapi-mcp", d.Info.Version, d, ops)
+			handler := makeMCPHandler(srv, m.BasePath)
+			mux.Handle(m.BasePath+"/", handler)
+			mux.Handle(m.BasePath, handler) // allow both /base and /base/
+			fmt.Fprintf(os.Stderr, "Mounted %s at %s\n", m.SpecPath, m.BasePath)
+		}
+		fmt.Fprintf(os.Stderr, "Starting multi-mount MCP HTTP server on %s...\n", flags.httpAddr)
+		if err := http.ListenAndServe(flags.httpAddr, mux); err != nil {
+			log.Fatalf("Failed to start MCP HTTP server: %v", err)
+		}
+		return
+	}
+
 	srv := openapi2mcp.NewServerWithOps("openapi-mcp", doc.Info.Version, doc, ops)
 	fmt.Fprintln(os.Stderr, "Registered all OpenAPI operations as MCP tools.")
 
 	if flags.httpAddr != "" {
-		fmt.Fprintf(os.Stderr, "Starting MCP server (HTTP) on %s (base path: %s)...\n", flags.httpAddr, flags.basePath)
-		if err := openapi2mcp.ServeHTTP(srv, flags.httpAddr, flags.basePath); err != nil {
+		fmt.Fprintf(os.Stderr, "Starting MCP server (HTTP) on %s...\n", flags.httpAddr)
+		if err := openapi2mcp.ServeHTTP(srv, flags.httpAddr, "/mcp"); err != nil {
 			log.Fatalf("Failed to start MCP HTTP server: %v", err)
 		}
 	} else {
@@ -27,4 +51,9 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 			log.Fatalf("Failed to start MCP server: %v", err)
 		}
 	}
+}
+
+// makeMCPHandler returns an http.Handler that serves the MCP server at the given basePath.
+func makeMCPHandler(srv *mcpserver.MCPServer, basePath string) http.Handler {
+	return openapi2mcp.HandlerForBasePath(srv, basePath)
 }

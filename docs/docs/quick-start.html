@@ -191,6 +191,16 @@ curl -H "Authorization: Bearer your_token" http://localhost:8080/mcp -d '...'</c
           This returns comprehensive information about all available tools, including schemas, examples, and descriptions.
         </p>
         
+        <h2>Serving Multiple APIs (Multi-Mount)</h2>
+        <p>
+        You can serve multiple OpenAPI specs at different base paths using the <code>--mount</code> flag in HTTP mode:
+        </p>
+        <pre><code class="language-bash">openapi-mcp --http=:8080 --mount /petstore:petstore.yaml --mount /books:books.yaml
+        </code></pre>
+        <p>
+        This will serve the Petstore API at <code>/petstore/sse</code>, <code>/petstore/message</code>, etc., and the Books API at <code>/books/sse</code>, <code>/books/message</code>, etc.
+        </p>
+        
         <h2>Next Steps</h2>
         <p>
           Now that you've got the basics down, here are some next steps:

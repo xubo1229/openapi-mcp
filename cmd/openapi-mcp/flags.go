@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // cliFlags holds all parsed CLI flags and arguments.
@@ -18,7 +19,6 @@ type cliFlags struct {
 	bearerToken        string
 	basicAuth          string
 	httpAddr           string
-	basePath           string
 	includeDescRegex   string
 	excludeDescRegex   string
 	dryRun             bool
@@ -31,6 +31,31 @@ type cliFlags struct {
 	postHookCmd        string
 	noConfirmDangerous bool
 	args               []string
+	mounts             mountFlags // slice of mountFlag
+}
+
+type mountFlag struct {
+	BasePath string
+	SpecPath string
+}
+
+type mountFlags []mountFlag
+
+func (m *mountFlags) String() string {
+	return fmt.Sprintf("%v", *m)
+}
+
+func (m *mountFlags) Set(val string) error {
+	// Expect format: /base:path/to/spec.yaml
+	sep := strings.Index(val, ":")
+	if sep < 1 || sep == len(val)-1 {
+		return fmt.Errorf("invalid --mount value: %q (expected /base:path/to/spec.yaml)", val)
+	}
+	*m = append(*m, mountFlag{
+		BasePath: val[:sep],
+		SpecPath: val[sep+1:],
+	})
+	return nil
 }
 
 // parseFlags parses all CLI flags and returns a cliFlags struct.
@@ -47,7 +72,6 @@ func parseFlags() *cliFlags {
 	flag.StringVar(&flags.bearerToken, "bearer-token", os.Getenv("BEARER_TOKEN"), "Bearer token for Authorization header (overrides BEARER_TOKEN env)")
 	flag.StringVar(&flags.basicAuth, "basic-auth", os.Getenv("BASIC_AUTH"), "Basic auth (user:pass) for Authorization header (overrides BASIC_AUTH env)")
 	flag.StringVar(&flags.httpAddr, "http", "", "Serve over HTTP on this address (e.g., :8080). For MCP server: serves tools via HTTP. For validate/lint: creates REST API endpoints.")
-	flag.StringVar(&flags.basePath, "base-path", "/mcp", "Base HTTP path to mount the MCP server (e.g., /mcp, /api/mcp). Only used in MCP server HTTP mode.")
 	flag.StringVar(&flags.includeDescRegex, "include-desc-regex", "", "Only include APIs whose description matches this regex (overrides INCLUDE_DESC_REGEX env)")
 	flag.StringVar(&flags.excludeDescRegex, "exclude-desc-regex", "", "Exclude APIs whose description matches this regex (overrides EXCLUDE_DESC_REGEX env)")
 	flag.BoolVar(&flags.dryRun, "dry-run", false, "Print the generated MCP tool schemas and exit (do not start the server)")
@@ -59,6 +83,7 @@ func parseFlags() *cliFlags {
 	flag.StringVar(&flags.docFormat, "doc-format", "markdown", "Documentation format: markdown (default) or html")
 	flag.StringVar(&flags.postHookCmd, "post-hook-cmd", "", "Command to post-process the generated tool schema JSON (used in --dry-run or --doc mode)")
 	flag.BoolVar(&flags.noConfirmDangerous, "no-confirm-dangerous", false, "Disable confirmation prompt for dangerous (PUT/POST/DELETE) actions in tool descriptions")
+	flag.Var(&flags.mounts, "mount", "Mount an OpenAPI spec at a base path: /base:path/to/spec.yaml (repeatable, can be used multiple times)")
 	flag.Parse()
 	flags.args = flag.Args()
 	if flags.extended {
@@ -144,7 +169,6 @@ Flags:
                        X-API-Key, Api-Key (for API keys)
                        Authorization: Bearer <token> (for bearer tokens)
                        Authorization: Basic <credentials> (for basic auth)
-  --base-path          Base HTTP path to mount the MCP server (e.g., /mcp, /api/mcp). Only used in MCP server HTTP mode.
   --include-desc-regex Only include APIs whose description matches this regex
   --exclude-desc-regex Exclude APIs whose description matches this regex
   --dry-run            Print the generated MCP tool schemas as JSON and exit
@@ -155,6 +179,7 @@ Flags:
   --summary            Print a summary for CI
   --tag                Only include tools with the given tag
   --diff               Compare generated tools with a reference file
+  --mount /base:path/to/spec.yaml  Mount an OpenAPI spec at a base path (repeatable, can be used multiple times)
   --help, -h           Show help
 
 By default, output is minimal and agent-friendly. Use --extended for banners, help, and human-readable output.
