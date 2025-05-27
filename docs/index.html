@@ -238,8 +238,11 @@ bin/openapi-mcp filter --tag=admin --include-desc-regex=foo examples/fastly-open
           <pre><code class="language-bash"># Main library for OpenAPI to MCP conversion
 go get github.com/jedisct1/openapi-mcp/pkg/openapi2mcp
 
-# MCP package for direct access to MCP types and tools
-go get github.com/jedisct1/openapi-mcp/pkg/mcp</code></pre>
+# MCP server package for server functionality
+go get github.com/jedisct1/openapi-mcp/pkg/mcp/server
+
+# MCP types package for core MCP utilities
+go get github.com/jedisct1/openapi-mcp/pkg/mcp/mcp</code></pre>
         </div>
         
         <div class="card mb-4">
@@ -296,7 +299,7 @@ srv.AddTool(customTool, handlerFunc)</code></pre>
         <ul class="mt-2">
           <li><a href="./docs/library-usage.html">Library Usage Guide</a></li>
           <li><a href="https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/openapi2mcp" target="_blank">openapi2mcp GoDoc</a></li>
-          <li><a href="https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/mcp" target="_blank">mcp GoDoc</a></li>
+          <li><a href="https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/mcp/server" target="_blank">mcp/server GoDoc</a></li>
         </ul>
       </div>
     </section>
