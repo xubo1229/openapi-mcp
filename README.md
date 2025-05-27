@@ -139,7 +139,9 @@ mcp> describe                          # Get full API documentation
 
 ## 🔒 Authentication
 
-openapi-mcp supports all standard OpenAPI authentication methods:
+openapi-mcp supports all standard OpenAPI authentication methods via command-line flags, environment variables, or HTTP headers:
+
+### Command-Line Flags & Environment Variables
 
 ```sh
 # API Key authentication
@@ -158,7 +160,28 @@ bin/openapi-mcp --basic-auth=username:password examples/fastly-openapi-mcp.yaml
 BASIC_AUTH=username:password bin/openapi-mcp examples/fastly-openapi-mcp.yaml
 ```
 
-Authentication is automatically applied to the appropriate endpoints as defined in your OpenAPI spec.
+### HTTP Header Authentication (HTTP Mode Only)
+
+When using HTTP mode (`--http=:8080`), you can provide authentication via HTTP headers in your requests:
+
+```sh
+# API Key via headers
+curl -H "X-API-Key: your_api_key" http://localhost:8080/mcp -d '...'
+curl -H "Api-Key: your_api_key" http://localhost:8080/mcp -d '...'
+
+# Bearer token
+curl -H "Authorization: Bearer your_token" http://localhost:8080/mcp -d '...'
+
+# Basic authentication
+curl -H "Authorization: Basic base64_credentials" http://localhost:8080/mcp -d '...'
+```
+
+**Supported Authentication Headers:**
+- `X-API-Key` or `Api-Key` - for API key authentication
+- `Authorization: Bearer <token>` - for OAuth2/Bearer token authentication
+- `Authorization: Basic <credentials>` - for Basic authentication
+
+Authentication is automatically applied to the appropriate endpoints as defined in your OpenAPI spec. HTTP header authentication takes precedence over environment variables for the duration of each request.
 
 ## 🛠️ Usage Examples
 

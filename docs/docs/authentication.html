@@ -107,6 +107,16 @@
         <h3>Environment Variable</h3>
         <pre><code class="language-bash">API_KEY=your_api_key bin/openapi-mcp examples/fastly-openapi-mcp.yaml</code></pre>
         
+        <h3>HTTP Header (HTTP Mode Only)</h3>
+        <p>
+          When using HTTP mode (<code>--http=:8080</code>), you can provide API keys via HTTP headers in your requests:
+        </p>
+        <pre><code class="language-bash"># Using X-API-Key header
+curl -H "X-API-Key: your_api_key" http://localhost:8080/mcp -d '...'
+
+# Using Api-Key header  
+curl -H "Api-Key: your_api_key" http://localhost:8080/mcp -d '...'</code></pre>
+        
         <p>
           The API key will be sent as specified in the OpenAPI spec, which might look like:
         </p>
@@ -127,6 +137,12 @@
         
         <h3>Environment Variable</h3>
         <pre><code class="language-bash">BEARER_TOKEN=your_token bin/openapi-mcp examples/fastly-openapi-mcp.yaml</code></pre>
+        
+        <h3>HTTP Header (HTTP Mode Only)</h3>
+        <p>
+          When using HTTP mode, you can provide Bearer tokens via the Authorization header:
+        </p>
+        <pre><code class="language-bash">curl -H "Authorization: Bearer your_token" http://localhost:8080/mcp -d '...'</code></pre>
         
         <p>
           The bearer token will be sent as an <code>Authorization: Bearer {token}</code> header for endpoints that require OAuth2 or HTTP bearer authentication, as defined in the OpenAPI spec:
@@ -155,6 +171,12 @@
         <h3>Environment Variable</h3>
         <pre><code class="language-bash">BASIC_AUTH=username:password bin/openapi-mcp examples/fastly-openapi-mcp.yaml</code></pre>
         
+        <h3>HTTP Header (HTTP Mode Only)</h3>
+        <p>
+          When using HTTP mode, you can provide Basic authentication via the Authorization header:
+        </p>
+        <pre><code class="language-bash">curl -H "Authorization: Basic base64_encoded_credentials" http://localhost:8080/mcp -d '...'</code></pre>
+        
         <p>
           The username and password will be Base64 encoded and sent as an <code>Authorization: Basic {encoded}</code> header for endpoints that require HTTP basic authentication, as defined in the OpenAPI spec:
         </p>
@@ -163,6 +185,42 @@
     BasicAuth:
       type: http
       scheme: basic</code></pre>
+        
+        <h2>HTTP Header Authentication (HTTP Mode)</h2>
+        <p>
+          When running openapi-mcp in HTTP mode (<code>--http=:8080</code>), you can provide authentication credentials via HTTP headers in your requests to the MCP server. This is particularly useful for integrating with web applications, API gateways, or other HTTP-based systems.
+        </p>
+        
+        <div class="card mb-4">
+          <h3>Supported Headers</h3>
+          <ul>
+            <li><code>X-API-Key</code> or <code>Api-Key</code> - for API key authentication</li>
+            <li><code>Authorization: Bearer &lt;token&gt;</code> - for OAuth2/Bearer token authentication</li>
+            <li><code>Authorization: Basic &lt;credentials&gt;</code> - for Basic authentication</li>
+          </ul>
+        </div>
+        
+        <h3>Header Authentication Examples</h3>
+        <pre><code class="language-bash"># Start HTTP server
+bin/openapi-mcp --http=:8080 examples/fastly-openapi-mcp.yaml
+
+# Make authenticated requests with headers
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","params":{}}'
+
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_token" \
+  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"listServices","arguments":{}}}'</code></pre>
+        
+        <div class="card mb-4 bg-light">
+          <h4>Authentication Precedence</h4>
+          <p>
+            When using HTTP mode, authentication headers in requests take precedence over environment variables and command-line flags for the duration of each request. This allows different clients to use different credentials when connecting to the same MCP server instance.
+          </p>
+        </div>
         
         <h2>Multiple Authentication Methods</h2>
         <p>

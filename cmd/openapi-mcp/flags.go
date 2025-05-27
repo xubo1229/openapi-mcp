@@ -106,6 +106,10 @@ Examples:
   MCP Server over HTTP:
     openapi-mcp --http=:8080 api.yaml             # HTTP server on port 8080
     openapi-mcp --http=:8080 --extended api.yaml  # With human-friendly output
+    
+    # With authentication via HTTP headers:
+    curl -H "X-API-Key: your_key" http://localhost:8080/mcp -d '...'
+    curl -H "Authorization: Bearer your_token" http://localhost:8080/mcp -d '...'
 
   Validation & Linting:
     openapi-mcp validate api.yaml                 # Check for critical issues
@@ -134,6 +138,10 @@ Flags:
   --bearer-token       Bearer token for Authorization header
   --basic-auth         Basic auth (user:pass) for Authorization header
   --http               Serve over HTTP on this address (e.g., :8080). For MCP server: serves tools via HTTP. For validate/lint: creates REST API endpoints.
+                       In HTTP mode, authentication can also be provided via headers:
+                       X-API-Key, Api-Key (for API keys)
+                       Authorization: Bearer <token> (for bearer tokens)
+                       Authorization: Basic <credentials> (for basic auth)
   --include-desc-regex Only include APIs whose description matches this regex
   --exclude-desc-regex Exclude APIs whose description matches this regex
   --dry-run            Print the generated MCP tool schemas as JSON and exit

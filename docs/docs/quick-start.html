@@ -110,6 +110,18 @@ BEARER_TOKEN=your_token bin/openapi-mcp examples/fastly-openapi-mcp.yaml</code><
         </p>
         <pre><code class="language-bash">bin/openapi-mcp --http=:8080 examples/fastly-openapi-mcp.yaml</code></pre>
         
+        <div class="card mb-4">
+          <h3>HTTP Mode Authentication</h3>
+          <p>
+            When using HTTP mode, you can provide authentication via HTTP headers in your requests:
+          </p>
+          <pre><code class="language-bash"># Example with API key header
+curl -H "X-API-Key: your_key" http://localhost:8080/mcp -d '...'
+
+# Example with Bearer token  
+curl -H "Authorization: Bearer your_token" http://localhost:8080/mcp -d '...'</code></pre>
+        </div>
+        
         <h2>Step 2: Use the Interactive Client</h2>
         <p>
           The mcp-client is an interactive client that allows you to explore the available MCP tools and make calls:

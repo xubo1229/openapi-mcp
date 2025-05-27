@@ -173,7 +173,10 @@ openapi-mcp --http=:8080 lint</code></pre>
                 <td>-</td>
                 <td>
                   Serve MCP over HTTP instead of stdio.<br>
-                  Example: <code>--http=:8080</code>
+                  Example: <code>--http=:8080</code><br>
+                  <strong>Note:</strong> In HTTP mode, authentication can also be provided via headers:
+                  <code>X-API-Key</code>, <code>Api-Key</code>, <code>Authorization: Bearer &lt;token&gt;</code>, 
+                  <code>Authorization: Basic &lt;credentials&gt;</code>
                 </td>
               </tr>
               <tr>
@@ -189,6 +192,11 @@ openapi-mcp --http=:8080 lint</code></pre>
         </div>
         
         <h2 id="authentication-flags">Authentication Flags</h2>
+        
+        <p>
+          Authentication can be provided via command-line flags, environment variables, or HTTP headers (when using <code>--http</code> mode).
+        </p>
+        
         <div class="card mb-4">
           <table>
             <thead>
