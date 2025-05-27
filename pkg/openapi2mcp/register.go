@@ -743,8 +743,3 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 
 	return toolNames
 }
-
-// RegisterExtraTool registers an additional custom MCP tool and its handler with the server.
-func RegisterExtraTool(server *mcpserver.MCPServer, tool mcp.Tool, handler mcpserver.ToolHandlerFunc) {
-	server.AddTool(tool, handler)
-}
