@@ -53,7 +53,7 @@ func LoadOpenAPISpecFromBytes(data []byte) (*openapi3.T, error) {
 //	ops := openapi2mcp.ExtractOpenAPIOperations(doc)
 func ExtractOpenAPIOperations(doc *openapi3.T) []OpenAPIOperation {
 	var ops []OpenAPIOperation
-	for path, pathItem := range doc.Paths {
+	for path, pathItem := range doc.Paths.Map() {
 		for method, op := range pathItem.Operations() {
 			id := op.OperationID
 			if id == "" {

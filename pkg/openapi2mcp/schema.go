@@ -52,8 +52,9 @@ func extractProperty(s *openapi3.SchemaRef) map[string]any {
 		prop["discriminator"] = val.Discriminator
 	}
 	// Type, format, description, enum, default, example
-	if val.Type != "" {
-		prop["type"] = val.Type
+	if val.Type != nil && len(*val.Type) > 0 {
+		// Use the first type if multiple types are specified
+		prop["type"] = (*val.Type)[0]
 	}
 	if val.Format != "" {
 		prop["format"] = val.Format
@@ -71,7 +72,7 @@ func extractProperty(s *openapi3.SchemaRef) map[string]any {
 		prop["example"] = val.Example
 	}
 	// Object properties
-	if val.Type == "object" && val.Properties != nil {
+	if val.Type != nil && val.Type.Is("object") && val.Properties != nil {
 		objProps := map[string]any{}
 		for name, sub := range val.Properties {
 			objProps[name] = extractProperty(sub)
@@ -82,7 +83,7 @@ func extractProperty(s *openapi3.SchemaRef) map[string]any {
 		}
 	}
 	// Array items
-	if val.Type == "array" && val.Items != nil {
+	if val.Type != nil && val.Type.Is("array") && val.Items != nil {
 		prop["items"] = extractProperty(val.Items)
 	}
 	return prop
@@ -111,7 +112,7 @@ func BuildInputSchema(params openapi3.Parameters, requestBody *openapi3.RequestB
 		}
 		p := paramRef.Value
 		if p.Schema != nil && p.Schema.Value != nil {
-			if p.Schema.Value.Type == "string" && p.Schema.Value.Format == "binary" {
+			if p.Schema.Value.Type != nil && p.Schema.Value.Type.Is("string") && p.Schema.Value.Format == "binary" {
 				fmt.Fprintf(os.Stderr, "[WARN] Parameter '%s' uses 'string' with 'binary' format. Non-JSON body types are not fully supported.\n", p.Name)
 			}
 			prop := extractProperty(p.Schema)

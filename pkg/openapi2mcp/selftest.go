@@ -23,7 +23,7 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 	recommendedLocations := map[string]bool{"path": true, "query": true, "header": true, "cookie": true}
 
 	// Check for missing operationIds in the original spec
-	for path, pathItem := range doc.Paths {
+	for path, pathItem := range doc.Paths.Map() {
 		for method, operation := range pathItem.Operations() {
 			if operation.OperationID == "" {
 				fmt.Fprintf(os.Stderr, "[ERROR] Operation for path '%s' and method '%s' is missing an operationId.\n", path, method)
@@ -80,7 +80,11 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 				// Don't continue - we can still check other parameter properties
 			} else {
 				schema = p.Schema.Value
-				typeStr = schema.Type
+				if schema.Type != nil && len(*schema.Type) > 0 {
+					typeStr = (*schema.Type)[0]
+				} else {
+					typeStr = ""
+				}
 				if typeStr == "" {
 					fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a type in its schema.\n", p.Name, op.OperationID)
 					fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: string\n")
@@ -138,7 +142,11 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 					// Don't continue - we can still check other media types and properties
 				} else {
 					schema = mt.Schema.Value
-					typeStr = schema.Type
+					if schema.Type != nil && len(*schema.Type) > 0 {
+						typeStr = (*schema.Type)[0]
+					} else {
+						typeStr = ""
+					}
 					if typeStr == "" {
 						fmt.Fprintf(os.Stderr, "[ERROR] Request body for operation '%s' (media type: '%s') is missing a type in its schema.\n", op.OperationID, mtName)
 						fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: object\n")
@@ -156,7 +164,10 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 							continue
 						}
 						prop := propRef.Value
-						ptype := prop.Type
+						var ptype string
+						if prop.Type != nil && len(*prop.Type) > 0 {
+							ptype = (*prop.Type)[0]
+						}
 						if ptype == "string" || ptype == "integer" || ptype == "boolean" {
 							if len(prop.Enum) == 0 {
 								fmt.Fprintf(os.Stderr, "[INFO] Request body property '%s' in operation '%s' has no enum.\n", propName, op.OperationID)
@@ -201,8 +212,8 @@ func SelfTestOpenAPIMCP(doc *openapi3.T, toolNames []string) error {
 					fmt.Fprintf(os.Stderr, "[ERROR] Tool '%s' is missing required argument '%s' in schema.\n", op.OperationID, req)
 					// Try to suggest the type if possible
 					typeHint := "string"
-					if param, found := findParamByName(op.Parameters, req); found && param.Schema != nil && param.Schema.Value != nil && param.Schema.Value.Type != "" {
-						typeHint = param.Schema.Value.Type
+					if param, found := findParamByName(op.Parameters, req); found && param.Schema != nil && param.Schema.Value != nil && param.Schema.Value.Type != nil && len(*param.Schema.Value.Type) > 0 {
+						typeHint = (*param.Schema.Value.Type)[0]
 					}
 					fmt.Fprintf(os.Stderr, "  Suggestion: Add the required argument '%s' (type: %s) to the schema for tool '%s' (path: '%s', method: '%s').\n", req, typeHint, op.OperationID, op.Path, op.Method)
 					fmt.Fprintf(os.Stderr, "    Example property: %s: { type: %q }\n", req, typeHint)
@@ -280,7 +291,7 @@ func SelfTestOpenAPIMCPWithOptions(doc *openapi3.T, toolNames []string, detailed
 	}
 
 	// Check for missing operationIds in the original spec
-	for path, pathItem := range doc.Paths {
+	for path, pathItem := range doc.Paths.Map() {
 		for method, operation := range pathItem.Operations() {
 			if operation.OperationID == "" {
 				fmt.Fprintf(os.Stderr, "[ERROR] Operation for path '%s' and method '%s' is missing an operationId.\n", path, method)
@@ -312,7 +323,10 @@ func SelfTestOpenAPIMCPWithOptions(doc *openapi3.T, toolNames []string, detailed
 				failures++
 				// Don't continue - we can still check other parameters
 			} else {
-				typeStr := p.Schema.Value.Type
+				var typeStr string
+				if p.Schema.Value.Type != nil && len(*p.Schema.Value.Type) > 0 {
+					typeStr = (*p.Schema.Value.Type)[0]
+				}
 				if typeStr == "" {
 					fmt.Fprintf(os.Stderr, "[ERROR] Parameter '%s' in operation '%s' is missing a type in its schema.\n", p.Name, op.OperationID)
 					fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: string\n")
@@ -329,7 +343,10 @@ func SelfTestOpenAPIMCPWithOptions(doc *openapi3.T, toolNames []string, detailed
 					failures++
 					// Don't continue - we can still check other media types
 				} else {
-					typeStr := mt.Schema.Value.Type
+					var typeStr string
+					if mt.Schema.Value.Type != nil && len(*mt.Schema.Value.Type) > 0 {
+						typeStr = (*mt.Schema.Value.Type)[0]
+					}
 					if typeStr == "" {
 						fmt.Fprintf(os.Stderr, "[ERROR] Request body for operation '%s' (media type: '%s') is missing a type in its schema.\n", op.OperationID, mtName)
 						fmt.Fprintf(os.Stderr, "  Suggestion: Add a 'type' to the schema, e.g. type: object\n")
@@ -428,7 +445,7 @@ func captureLintIssues(doc *openapi3.T, toolNames []string, detailedSuggestions 
 	}
 
 	// Check for missing operationIds in the original spec
-	for path, pathItem := range doc.Paths {
+	for path, pathItem := range doc.Paths.Map() {
 		for method, operation := range pathItem.Operations() {
 			if operation.OperationID == "" {
 				issues = append(issues, LintIssue{
@@ -558,7 +575,11 @@ func captureLintIssues(doc *openapi3.T, toolNames []string, detailedSuggestions 
 				// Don't continue - we can still check other parameter properties
 			} else {
 				schema = p.Schema.Value
-				typeStr = schema.Type
+				if schema.Type != nil && len(*schema.Type) > 0 {
+					typeStr = (*schema.Type)[0]
+				} else {
+					typeStr = ""
+				}
 			}
 
 			// Check type recommendations and other schema properties (only if schema exists)

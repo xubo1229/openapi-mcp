@@ -613,7 +613,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 	}
 
 	// Add a tool for externalDocs if present
-	if doc.ExternalDocs != nil && doc.ExternalDocs.URL != "" {
+	if doc.ExternalDocs != nil && doc.ExternalDocs.URL != "" && (opts == nil || !opts.DryRun) {
 		desc := "Show the OpenAPI external documentation URL and description."
 		inputSchema := map[string]any{
 			"type":       "object",
@@ -648,7 +648,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 	}
 
 	// Add a tool for info if present
-	if doc.Info != nil {
+	if doc.Info != nil && (opts == nil || !opts.DryRun) {
 		desc := "Show API metadata: title, version, description, and terms of service."
 		inputSchema := map[string]any{
 			"type":       "object",
@@ -692,44 +692,46 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 	}
 
 	// After registering all OpenAPI tools, add a `describe` tool that returns the full schema and metadata for all tools.
-	describeSchema := map[string]any{
-		"type":       "object",
-		"properties": map[string]any{},
-	}
-	describeSchemaJSON, _ := json.MarshalIndent(describeSchema, "", "  ")
-	describeTool := mcp.NewToolWithRawSchema("describe", "Describe all available tools and their schemas in machine-readable form.", describeSchemaJSON)
-	describeTool.Annotations = mcp.ToolAnnotation{Title: "Agent-Friendly Documentation"}
-	server.AddTool(describeTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Gather all tools and their schemas
-		tools := []map[string]any{}
-		for _, tool := range server.ListTools() {
-			toolInfo := map[string]any{
-				"name":         tool.Name,
-				"description":  tool.Description,
-				"inputSchema":  tool.InputSchema,
-				"annotations":  tool.Annotations,
-				"output_type":  "text", // default, can be improved if richer info is available
-				"example_call": map[string]any{"name": tool.Name, "arguments": map[string]any{}},
+	if opts == nil || !opts.DryRun {
+		describeSchema := map[string]any{
+			"type":       "object",
+			"properties": map[string]any{},
+		}
+		describeSchemaJSON, _ := json.MarshalIndent(describeSchema, "", "  ")
+		describeTool := mcp.NewToolWithRawSchema("describe", "Describe all available tools and their schemas in machine-readable form.", describeSchemaJSON)
+		describeTool.Annotations = mcp.ToolAnnotation{Title: "Agent-Friendly Documentation"}
+		server.AddTool(describeTool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			// Gather all tools and their schemas
+			tools := []map[string]any{}
+			for _, tool := range server.ListTools() {
+				toolInfo := map[string]any{
+					"name":         tool.Name,
+					"description":  tool.Description,
+					"inputSchema":  tool.InputSchema,
+					"annotations":  tool.Annotations,
+					"output_type":  "text", // default, can be improved if richer info is available
+					"example_call": map[string]any{"name": tool.Name, "arguments": map[string]any{}},
+				}
+				tools = append(tools, toolInfo)
 			}
-			tools = append(tools, toolInfo)
-		}
-		response := map[string]any{
-			"type":  "tool_descriptions",
-			"tools": tools,
-		}
-		jsonOut, _ := json.MarshalIndent(response, "", "  ")
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				mcp.TextContent{
-					Type: "json",
-					Text: string(jsonOut),
+			response := map[string]any{
+				"type":  "tool_descriptions",
+				"tools": tools,
+			}
+			jsonOut, _ := json.MarshalIndent(response, "", "  ")
+			return &mcp.CallToolResult{
+				Content: []mcp.Content{
+					mcp.TextContent{
+						Type: "json",
+						Text: string(jsonOut),
+					},
 				},
-			},
-			OutputFormat: "structured",
-			OutputType:   "json",
-		}, nil
-	})
-	toolNames = append(toolNames, "describe")
+				OutputFormat: "structured",
+				OutputType:   "json",
+			}, nil
+		})
+		toolNames = append(toolNames, "describe")
+	}
 
 	if opts != nil && opts.DryRun {
 		if opts.PrettyPrint {

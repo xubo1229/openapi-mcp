@@ -26,21 +26,22 @@ func TestRegisterOpenAPITools(t *testing.T) {
 	os.Setenv("OPENAPI_BASE_URL", ts.URL)
 	defer os.Unsetenv("OPENAPI_BASE_URL")
 
-	doc := &openapi3.T{
-		Paths: openapi3.Paths{
-			"/foo": &openapi3.PathItem{
-				Get: &openapi3.Operation{
-					OperationID: "getFoo",
-					Summary:     "Get Foo",
-				},
-			},
-			"/bar": &openapi3.PathItem{
-				Post: &openapi3.Operation{
-					OperationID: "createBar",
-					Summary:     "Create Bar",
-				},
-			},
+	paths := openapi3.NewPaths()
+	paths.Set("/foo", &openapi3.PathItem{
+		Get: &openapi3.Operation{
+			OperationID: "getFoo",
+			Summary:     "Get Foo",
 		},
+	})
+	paths.Set("/bar", &openapi3.PathItem{
+		Post: &openapi3.Operation{
+			OperationID: "createBar",
+			Summary:     "Create Bar",
+		},
+	})
+
+	doc := &openapi3.T{
+		Paths: paths,
 	}
 
 	server := mcpserver.NewMCPServer("test", "0.0.1")
@@ -139,44 +140,50 @@ func TestHTTPOpenAPIToolHandler(t *testing.T) {
 	os.Setenv("OPENAPI_BASE_URL", ts.URL)
 	defer os.Unsetenv("OPENAPI_BASE_URL")
 
-	doc := &openapi3.T{
-		Paths: openapi3.Paths{
-			"/foo/{id}": &openapi3.PathItem{
-				Get: &openapi3.Operation{
-					OperationID: "getFoo",
-					Summary:     "Get Foo",
-					Parameters: openapi3.Parameters{
-						&openapi3.ParameterRef{Value: &openapi3.Parameter{Name: "id", In: "path", Required: true, Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}}}},
-						&openapi3.ParameterRef{Value: &openapi3.Parameter{Name: "q", In: "query", Required: false, Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}}}},
-					},
-				},
-			},
-			"/bar": &openapi3.PathItem{
-				Post: &openapi3.Operation{
-					OperationID: "createBar",
-					Summary:     "Create Bar",
-					RequestBody: &openapi3.RequestBodyRef{Value: &openapi3.RequestBody{
-						Content: openapi3.Content{
-							"application/json": &openapi3.MediaType{
-								Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
-									Type: "object",
-									Properties: openapi3.Schemas{
-										"foo": &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
-									},
-									Required: []string{"foo"},
-								}},
-							},
-						},
-					}},
-				},
-			},
-			"/file": &openapi3.PathItem{
-				Get: &openapi3.Operation{
-					OperationID: "getFile",
-					Summary:     "Get File",
-				},
+	typesPtr := func(types ...string) *openapi3.Types {
+		t := openapi3.Types(types)
+		return &t
+	}
+
+	paths := openapi3.NewPaths()
+	paths.Set("/foo/{id}", &openapi3.PathItem{
+		Get: &openapi3.Operation{
+			OperationID: "getFoo",
+			Summary:     "Get Foo",
+			Parameters: openapi3.Parameters{
+				&openapi3.ParameterRef{Value: &openapi3.Parameter{Name: "id", In: "path", Required: true, Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: typesPtr("string")}}}},
+				&openapi3.ParameterRef{Value: &openapi3.Parameter{Name: "q", In: "query", Required: false, Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: typesPtr("string")}}}},
 			},
 		},
+	})
+	paths.Set("/bar", &openapi3.PathItem{
+		Post: &openapi3.Operation{
+			OperationID: "createBar",
+			Summary:     "Create Bar",
+			RequestBody: &openapi3.RequestBodyRef{Value: &openapi3.RequestBody{
+				Content: openapi3.Content{
+					"application/json": &openapi3.MediaType{
+						Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
+							Type: typesPtr("object"),
+							Properties: openapi3.Schemas{
+								"foo": &openapi3.SchemaRef{Value: &openapi3.Schema{Type: typesPtr("string")}},
+							},
+							Required: []string{"foo"},
+						}},
+					},
+				},
+			}},
+		},
+	})
+	paths.Set("/file", &openapi3.PathItem{
+		Get: &openapi3.Operation{
+			OperationID: "getFile",
+			Summary:     "Get File",
+		},
+	})
+
+	doc := &openapi3.T{
+		Paths: paths,
 	}
 
 	server := mcpserver.NewMCPServer("test", "0.0.1")
@@ -402,14 +409,16 @@ func TestRegisterOpenAPITools_ServerSelection(t *testing.T) {
 			&openapi3.Server{URL: tsA.URL},
 			&openapi3.Server{URL: tsB.URL},
 		},
-		Paths: openapi3.Paths{
-			"/foo": &openapi3.PathItem{
+		Paths: func() *openapi3.Paths {
+			paths := openapi3.NewPaths()
+			paths.Set("/foo", &openapi3.PathItem{
 				Get: &openapi3.Operation{
 					OperationID: "getFoo",
 					Summary:     "Get Foo",
 				},
-			},
-		},
+			})
+			return paths
+		}(),
 	}
 
 	server := mcpserver.NewMCPServer("test", "0.0.1")
@@ -436,7 +445,7 @@ func TestExternalDocsTool(t *testing.T) {
 			URL:         "https://docs.example.com",
 			Description: "See the full API documentation.",
 		},
-		Paths: openapi3.Paths{},
+		Paths: openapi3.NewPaths(),
 	}
 	server := mcpserver.NewMCPServer("test", "0.0.1")
 	ops := openapi2mcp.ExtractOpenAPIOperations(doc)
@@ -505,7 +514,7 @@ func TestInfoTool(t *testing.T) {
 			Description:    "This is a test API.",
 			TermsOfService: "https://tos.example.com",
 		},
-		Paths: openapi3.Paths{},
+		Paths: openapi3.NewPaths(),
 	}
 	server := mcpserver.NewMCPServer("test", "0.0.1")
 	ops := openapi2mcp.ExtractOpenAPIOperations(doc)

@@ -12,18 +12,24 @@ func stringPtr(s string) *string {
 	return &s
 }
 
+func typesPtr(types ...string) *openapi3.Types {
+	t := openapi3.Types(types)
+	return &t
+}
+
 func minimalOpenAPIDoc() *openapi3.T {
-	return &openapi3.T{
-		Info: &openapi3.Info{Title: "Test API", Version: "1.0.0"},
-		Paths: openapi3.Paths{
-			"/foo": &openapi3.PathItem{
-				Get: &openapi3.Operation{
-					OperationID: "getFoo",
-					Summary:     "Get Foo",
-					Parameters:  openapi3.Parameters{},
-				},
-			},
+	paths := openapi3.NewPaths()
+	paths.Set("/foo", &openapi3.PathItem{
+		Get: &openapi3.Operation{
+			OperationID: "getFoo",
+			Summary:     "Get Foo",
+			Parameters:  openapi3.Parameters{},
 		},
+	})
+
+	return &openapi3.T{
+		Info:  &openapi3.Info{Title: "Test API", Version: "1.0.0"},
+		Paths: paths,
 	}
 }
 
@@ -61,7 +67,10 @@ func TestRegisterOpenAPITools_Basic(t *testing.T) {
 
 func TestRegisterOpenAPITools_TagFilter(t *testing.T) {
 	doc := minimalOpenAPIDoc()
-	doc.Paths["/foo"].Get.Tags = []string{"bar"}
+	pathItem := doc.Paths.Value("/foo")
+	if pathItem != nil && pathItem.Get != nil {
+		pathItem.Get.Tags = []string{"bar"}
+	}
 	srv := server.NewMCPServer("test", "1.0.0")
 	ops := ExtractOpenAPIOperations(doc)
 	opts := &ToolGenOptions{
@@ -100,44 +109,47 @@ func TestSelfTestOpenAPIMCP_MissingTool(t *testing.T) {
 
 func TestNumberVsIntegerTypes(t *testing.T) {
 	// Create a spec with both number and integer types
-	doc := &openapi3.T{
-		Info: &openapi3.Info{Title: "Number Test API", Version: "1.0.0"},
-		Paths: openapi3.Paths{
-			"/test": &openapi3.PathItem{
-				Post: &openapi3.Operation{
-					OperationID: "testNumbers",
-					Summary:     "Test number types",
-					RequestBody: &openapi3.RequestBodyRef{
-						Value: &openapi3.RequestBody{
-							Required: true,
-							Content: openapi3.Content{
-								"application/json": &openapi3.MediaType{
-									Schema: &openapi3.SchemaRef{
-										Value: &openapi3.Schema{
-											Type: "object",
-											Properties: openapi3.Schemas{
-												"integerField": &openapi3.SchemaRef{
-													Value: &openapi3.Schema{Type: "integer"},
-												},
-												"numberField": &openapi3.SchemaRef{
-													Value: &openapi3.Schema{Type: "number"},
-												},
-											},
-											Required: []string{"integerField", "numberField"},
+	paths := openapi3.NewPaths()
+
+	responses := openapi3.NewResponses()
+	responses.Set("200", &openapi3.ResponseRef{
+		Value: &openapi3.Response{Description: stringPtr("OK")},
+	})
+
+	paths.Set("/test", &openapi3.PathItem{
+		Post: &openapi3.Operation{
+			OperationID: "testNumbers",
+			Summary:     "Test number types",
+			RequestBody: &openapi3.RequestBodyRef{
+				Value: &openapi3.RequestBody{
+					Required: true,
+					Content: openapi3.Content{
+						"application/json": &openapi3.MediaType{
+							Schema: &openapi3.SchemaRef{
+								Value: &openapi3.Schema{
+									Type: typesPtr("object"),
+									Properties: openapi3.Schemas{
+										"integerField": &openapi3.SchemaRef{
+											Value: &openapi3.Schema{Type: typesPtr("integer")},
+										},
+										"numberField": &openapi3.SchemaRef{
+											Value: &openapi3.Schema{Type: typesPtr("number")},
 										},
 									},
+									Required: []string{"integerField", "numberField"},
 								},
 							},
 						},
 					},
-					Responses: openapi3.Responses{
-						"200": &openapi3.ResponseRef{
-							Value: &openapi3.Response{Description: stringPtr("OK")},
-						},
-					},
 				},
 			},
+			Responses: responses,
 		},
+	})
+
+	doc := &openapi3.T{
+		Info:  &openapi3.Info{Title: "Number Test API", Version: "1.0.0"},
+		Paths: paths,
 	}
 
 	ops := ExtractOpenAPIOperations(doc)
@@ -197,46 +209,49 @@ func TestNumberVsIntegerTypes(t *testing.T) {
 
 func TestFormatPreservation(t *testing.T) {
 	// Create a spec with various format specifiers
-	doc := &openapi3.T{
-		Info: &openapi3.Info{Title: "Format Test API", Version: "1.0.0"},
-		Paths: openapi3.Paths{
-			"/test": &openapi3.PathItem{
-				Post: &openapi3.Operation{
-					OperationID: "testFormats",
-					Summary:     "Test format preservation",
-					RequestBody: &openapi3.RequestBodyRef{
-						Value: &openapi3.RequestBody{
-							Required: true,
-							Content: openapi3.Content{
-								"application/json": &openapi3.MediaType{
-									Schema: &openapi3.SchemaRef{
-										Value: &openapi3.Schema{
-											Type: "object",
-											Properties: openapi3.Schemas{
-												"int32Field": &openapi3.SchemaRef{
-													Value: &openapi3.Schema{Type: "integer", Format: "int32"},
-												},
-												"floatField": &openapi3.SchemaRef{
-													Value: &openapi3.Schema{Type: "number", Format: "float"},
-												},
-												"dateField": &openapi3.SchemaRef{
-													Value: &openapi3.Schema{Type: "string", Format: "date"},
-												},
-											},
+	paths := openapi3.NewPaths()
+
+	responses := openapi3.NewResponses()
+	responses.Set("200", &openapi3.ResponseRef{
+		Value: &openapi3.Response{Description: stringPtr("OK")},
+	})
+
+	paths.Set("/test", &openapi3.PathItem{
+		Post: &openapi3.Operation{
+			OperationID: "testFormats",
+			Summary:     "Test format preservation",
+			RequestBody: &openapi3.RequestBodyRef{
+				Value: &openapi3.RequestBody{
+					Required: true,
+					Content: openapi3.Content{
+						"application/json": &openapi3.MediaType{
+							Schema: &openapi3.SchemaRef{
+								Value: &openapi3.Schema{
+									Type: typesPtr("object"),
+									Properties: openapi3.Schemas{
+										"int32Field": &openapi3.SchemaRef{
+											Value: &openapi3.Schema{Type: typesPtr("integer"), Format: "int32"},
+										},
+										"floatField": &openapi3.SchemaRef{
+											Value: &openapi3.Schema{Type: typesPtr("number"), Format: "float"},
+										},
+										"dateField": &openapi3.SchemaRef{
+											Value: &openapi3.Schema{Type: typesPtr("string"), Format: "date"},
 										},
 									},
 								},
 							},
 						},
 					},
-					Responses: openapi3.Responses{
-						"200": &openapi3.ResponseRef{
-							Value: &openapi3.Response{Description: stringPtr("OK")},
-						},
-					},
 				},
 			},
+			Responses: responses,
 		},
+	})
+
+	doc := &openapi3.T{
+		Info:  &openapi3.Info{Title: "Format Test API", Version: "1.0.0"},
+		Paths: paths,
 	}
 
 	ops := ExtractOpenAPIOperations(doc)

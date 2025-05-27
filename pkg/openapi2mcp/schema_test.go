@@ -19,7 +19,7 @@ func TestBuildInputSchema_Basic(t *testing.T) {
 			Name:     "foo",
 			In:       "query",
 			Required: true,
-			Schema:   &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+			Schema:   &openapi3.SchemaRef{Value: &openapi3.Schema{Type: typesPtr("string")}},
 		}},
 	}
 	schema := BuildInputSchema(params, nil)
@@ -55,9 +55,9 @@ func TestBuildInputSchema_RequiredFromBody(t *testing.T) {
 		Content: openapi3.Content{
 			"application/json": &openapi3.MediaType{
 				Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
-					Type: "object",
+					Type: typesPtr("object"),
 					Properties: map[string]*openapi3.SchemaRef{
-						"bar": {Value: &openapi3.Schema{Type: "integer"}},
+						"bar": {Value: &openapi3.Schema{Type: typesPtr("integer")}},
 					},
 					Required: []string{"bar"},
 				}},
