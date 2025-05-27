@@ -232,12 +232,22 @@ bin/openapi-mcp filter --tag=admin --include-desc-regex=foo examples/fastly-open
           openapi-mcp can be imported as a Go module in your projects, enabling you to integrate
         MCP server capabilities directly into your applications.
         </p>
-        <div class="card">
-          <h4>Example Go Code</h4>
+        
+        <div class="card mb-4">
+          <h4>Installation</h4>
+          <pre><code class="language-bash"># Main library for OpenAPI to MCP conversion
+go get github.com/jedisct1/openapi-mcp/pkg/openapi2mcp
+
+# MCP package for direct access to MCP types and tools
+go get github.com/jedisct1/openapi-mcp/pkg/mcp</code></pre>
+        </div>
+        
+        <div class="card mb-4">
+          <h4>Basic Usage</h4>
           <pre><code class="language-go">package main
 
 import (
-	"github.com/getkin/kin-openapi/openapi3"
+	"log"
 	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
 )
 
@@ -245,7 +255,7 @@ func main() {
 	// Load OpenAPI spec
 	doc, err := openapi2mcp.LoadOpenAPISpec("openapi.yaml")
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	
 	// Create MCP server
@@ -253,20 +263,41 @@ func main() {
 	
 	// Serve over HTTP
 	if err := openapi2mcp.ServeHTTP(srv, ":8080"); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
-	
-	// Or serve over stdio
-	// if err := openapi2mcp.ServeStdio(srv); err != nil {
-	//    panic(err)
-	// }
 }</code></pre>
         </div>
+        
+        <div class="card">
+          <h4>Advanced Usage with MCP Package</h4>
+          <pre><code class="language-go">import (
+	"context"
+	"github.com/jedisct1/openapi-mcp/pkg/mcp/mcp"
+	"github.com/jedisct1/openapi-mcp/pkg/mcp/server"
+	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
+)
+
+// Create server and add custom tools
+srv := server.NewMCPServer("myapi", "1.0")
+ops := openapi2mcp.ExtractOpenAPIOperations(doc)
+openapi2mcp.RegisterOpenAPITools(srv, ops, doc, nil)
+
+// Add custom tools using MCP package directly
+customTool := mcp.NewTool("custom", 
+	mcp.WithDescription("A custom tool"),
+	mcp.WithString("message", mcp.Required()))
+
+srv.AddTool(customTool, handlerFunc)</code></pre>
+        </div>
+        
         <p class="mt-4">
-          See
-          <a href="https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/openapi2mcp" target="_blank">GoDoc</a>
-          for complete API documentation.
+          See our comprehensive documentation:
         </p>
+        <ul class="mt-2">
+          <li><a href="./docs/library-usage.html">Library Usage Guide</a></li>
+          <li><a href="https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/openapi2mcp" target="_blank">openapi2mcp GoDoc</a></li>
+          <li><a href="https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/mcp" target="_blank">mcp GoDoc</a></li>
+        </ul>
       </div>
     </section>
     <!-- CTA Section -->

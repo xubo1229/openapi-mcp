@@ -136,12 +136,34 @@ make bin/mcp-client</code></pre>
           Download the appropriate binary for your platform, extract it, and place it in your PATH.
         </p>
         
+        <h2>Go Library Installation</h2>
+        <p>
+          To use openapi-mcp as a Go library in your own applications:
+        </p>
+        
+        <h3>Main Library</h3>
+        <p>
+          For OpenAPI to MCP conversion functionality:
+        </p>
+        <pre><code class="language-bash">go get github.com/jedisct1/openapi-mcp/pkg/openapi2mcp</code></pre>
+        
+        <h3>MCP Package</h3>
+        <p>
+          For direct access to MCP types and tools:
+        </p>
+        <pre><code class="language-bash">go get github.com/jedisct1/openapi-mcp/pkg/mcp</code></pre>
+        
+        <p>
+          See the <a href="./library-usage.html">Library Usage</a> documentation for detailed examples and API reference.
+        </p>
+
         <h2>Next Steps</h2>
         <p>
           Now that you have installed openapi-mcp, you can:
         </p>
         <ul>
           <li><a href="./quick-start.html">Get started</a> with your first OpenAPI spec</li>
+          <li><a href="./library-usage.html">Use openapi-mcp as a Go library</a></li>
           <li>Learn about <a href="./authentication.html">authentication options</a></li>
           <li>Explore <a href="./configuration.html">configuration options</a></li>
         </ul>
