@@ -8,23 +8,6 @@ This package provides a Go library for converting OpenAPI 3.x specifications int
 go get github.com/jedisct1/openapi-mcp/pkg/openapi2mcp
 ```
 
-## Important: Dependency Override Required
-
-Due to internal patches in the mcp-go dependency, you need to add a replace directive to your `go.mod` file:
-
-```go
-module your-project
-
-go 1.23
-
-require (
-	github.com/jedisct1/openapi-mcp/pkg/openapi2mcp v0.1.0
-)
-
-// Override the internal mcp-go dependency with the public version
-replace github.com/mark3labs/mcp-go => github.com/mark3labs/mcp-go v0.30.0
-```
-
 ## Usage
 
 ```go
