@@ -17,8 +17,8 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 	fmt.Fprintln(os.Stderr, "Registered all OpenAPI operations as MCP tools.")
 
 	if flags.httpAddr != "" {
-		fmt.Fprintf(os.Stderr, "Starting MCP server (HTTP) on %s...\n", flags.httpAddr)
-		if err := openapi2mcp.ServeHTTP(srv, flags.httpAddr); err != nil {
+		fmt.Fprintf(os.Stderr, "Starting MCP server (HTTP) on %s (base path: %s)...\n", flags.httpAddr, flags.basePath)
+		if err := openapi2mcp.ServeHTTP(srv, flags.httpAddr, flags.basePath); err != nil {
 			log.Fatalf("Failed to start MCP HTTP server: %v", err)
 		}
 	} else {

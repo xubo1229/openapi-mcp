@@ -121,45 +121,72 @@ func ServeStdio(server *mcpserver.MCPServer) error {
 
 // ServeHTTP starts the MCP server using HTTP SSE (wraps mcpserver.NewSSEServer and Start).
 // addr is the address to listen on, e.g. ":8080".
+// basePath is the base HTTP path to mount the MCP server (e.g. "/mcp").
 // Returns an error if the server fails to start.
 // Example usage for ServeHTTP:
 //
 //	srv, _ := openapi2mcp.NewServer("petstore", "1.0.0", doc)
-//	openapi2mcp.ServeHTTP(srv, ":8080")
-func ServeHTTP(server *mcpserver.MCPServer, addr string) error {
+//	openapi2mcp.ServeHTTP(srv, ":8080", "/custom-base")
+func ServeHTTP(server *mcpserver.MCPServer, addr string, basePath string) error {
 	// Convert the authContextFunc to SSEContextFunc signature
 	sseAuthContextFunc := func(ctx context.Context, r *http.Request) context.Context {
 		return authContextFunc(ctx, r)
 	}
 
+	if basePath == "" {
+		basePath = "/mcp"
+	}
+
 	sseServer := mcpserver.NewSSEServer(server,
 		mcpserver.WithSSEContextFunc(sseAuthContextFunc),
-		mcpserver.WithStaticBasePath("/mcp"),
+		mcpserver.WithStaticBasePath(basePath),
 		mcpserver.WithSSEEndpoint("/sse"),
 		mcpserver.WithMessageEndpoint("/message"))
 	return sseServer.Start(addr)
 }
 
+// Backward-compatible ServeHTTP (defaults to /mcp)
+func ServeHTTPDefault(server *mcpserver.MCPServer, addr string) error {
+	return ServeHTTP(server, addr, "/mcp")
+}
+
 // GetSSEURL returns the URL for establishing an SSE connection to the MCP server.
 // baseURL should be the base URL where the server is hosted (e.g., "http://localhost:8080").
-// Clients should connect to this URL to establish a persistent Server-Sent Events connection.
+// basePath is the base HTTP path (e.g., "/mcp").
 // Example usage:
 //
-//	url := openapi2mcp.GetSSEURL("http://localhost:8080")
-//	// Returns: "http://localhost:8080/mcp/sse"
-func GetSSEURL(baseURL string) string {
+//	url := openapi2mcp.GetSSEURL("http://localhost:8080", "/custom-base")
+//	// Returns: "http://localhost:8080/custom-base/sse"
+func GetSSEURL(baseURL, basePath string) string {
 	baseURL = strings.TrimSuffix(baseURL, "/")
-	return baseURL + "/mcp/sse"
+	if basePath == "" {
+		basePath = "/mcp"
+	}
+	return baseURL + basePath + "/sse"
+}
+
+// Backward-compatible GetSSEURL (defaults to /mcp)
+func GetSSEURLDefault(baseURL string) string {
+	return GetSSEURL(baseURL, "/mcp")
 }
 
 // GetMessageURL returns the URL for sending JSON-RPC requests to the MCP server.
 // baseURL should be the base URL where the server is hosted (e.g., "http://localhost:8080").
+// basePath is the base HTTP path (e.g., "/mcp").
 // sessionID should be the session ID received from the SSE endpoint event.
 // Example usage:
 //
-//	url := openapi2mcp.GetMessageURL("http://localhost:8080", "session-id-123")
-//	// Returns: "http://localhost:8080/mcp/message?sessionId=session-id-123"
-func GetMessageURL(baseURL, sessionID string) string {
+//	url := openapi2mcp.GetMessageURL("http://localhost:8080", "/custom-base", "session-id-123")
+//	// Returns: "http://localhost:8080/custom-base/message?sessionId=session-id-123"
+func GetMessageURL(baseURL, basePath, sessionID string) string {
 	baseURL = strings.TrimSuffix(baseURL, "/")
-	return fmt.Sprintf("%s/mcp/message?sessionId=%s", baseURL, sessionID)
+	if basePath == "" {
+		basePath = "/mcp"
+	}
+	return fmt.Sprintf("%s%s/message?sessionId=%s", baseURL, basePath, sessionID)
+}
+
+// Backward-compatible GetMessageURL (defaults to /mcp)
+func GetMessageURLDefault(baseURL, sessionID string) string {
+	return GetMessageURL(baseURL, "/mcp", sessionID)
 }
