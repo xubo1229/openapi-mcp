@@ -7,36 +7,41 @@ import (
 func TestGetSSEURL(t *testing.T) {
 	tests := []struct {
 		name     string
-		baseURL  string
+		addr     string
+		basePath string
 		expected string
 	}{
 		{
-			name:     "basic URL",
-			baseURL:  "http://localhost:8080",
+			name:     "basic addr",
+			addr:     ":8080",
+			basePath: "/mcp",
 			expected: "http://localhost:8080/mcp/sse",
 		},
 		{
-			name:     "URL with trailing slash",
-			baseURL:  "http://localhost:8080/",
+			name:     "addr with host",
+			addr:     "127.0.0.1:3000",
+			basePath: "/api",
+			expected: "http://127.0.0.1:3000/api/sse",
+		},
+		{
+			name:     "addr with hostname",
+			addr:     "myhost:9000",
+			basePath: "/foo",
+			expected: "http://myhost:9000/foo/sse",
+		},
+		{
+			name:     "empty basePath",
+			addr:     ":8080",
+			basePath: "",
 			expected: "http://localhost:8080/mcp/sse",
-		},
-		{
-			name:     "HTTPS URL",
-			baseURL:  "https://api.example.com",
-			expected: "https://api.example.com/mcp/sse",
-		},
-		{
-			name:     "URL with port and path",
-			baseURL:  "http://example.com:3000",
-			expected: "http://example.com:3000/mcp/sse",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := GetSSEURL(tt.baseURL)
+			result := GetSSEURL(tt.addr, tt.basePath)
 			if result != tt.expected {
-				t.Errorf("GetSSEURL(%q) = %q, want %q", tt.baseURL, result, tt.expected)
+				t.Errorf("GetSSEURL(%q, %q) = %q, want %q", tt.addr, tt.basePath, result, tt.expected)
 			}
 		})
 	}
@@ -45,31 +50,36 @@ func TestGetSSEURL(t *testing.T) {
 func TestGetMessageURL(t *testing.T) {
 	tests := []struct {
 		name      string
-		baseURL   string
+		addr      string
+		basePath  string
 		sessionID string
 		expected  string
 	}{
 		{
-			name:      "basic URL with session",
-			baseURL:   "http://localhost:8080",
+			name:      "basic addr with session",
+			addr:      ":8080",
+			basePath:  "/mcp",
 			sessionID: "session-123",
 			expected:  "http://localhost:8080/mcp/message?sessionId=session-123",
 		},
 		{
-			name:      "URL with trailing slash",
-			baseURL:   "http://localhost:8080/",
+			name:      "addr with host",
+			addr:      "127.0.0.1:3000",
+			basePath:  "/api",
 			sessionID: "abc-def-ghi",
-			expected:  "http://localhost:8080/mcp/message?sessionId=abc-def-ghi",
+			expected:  "http://127.0.0.1:3000/api/message?sessionId=abc-def-ghi",
 		},
 		{
-			name:      "HTTPS URL with UUID session",
-			baseURL:   "https://api.example.com",
+			name:      "hostname and uuid session",
+			addr:      "myhost:9000",
+			basePath:  "/foo",
 			sessionID: "550e8400-e29b-41d4-a716-446655440000",
-			expected:  "https://api.example.com/mcp/message?sessionId=550e8400-e29b-41d4-a716-446655440000",
+			expected:  "http://myhost:9000/foo/message?sessionId=550e8400-e29b-41d4-a716-446655440000",
 		},
 		{
 			name:      "empty session ID",
-			baseURL:   "http://localhost:8080",
+			addr:      ":8080",
+			basePath:  "/mcp",
 			sessionID: "",
 			expected:  "http://localhost:8080/mcp/message?sessionId=",
 		},
@@ -77,9 +87,9 @@ func TestGetMessageURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := GetMessageURL(tt.baseURL, tt.sessionID)
+			result := GetMessageURL(tt.addr, tt.basePath, tt.sessionID)
 			if result != tt.expected {
-				t.Errorf("GetMessageURL(%q, %q) = %q, want %q", tt.baseURL, tt.sessionID, result, tt.expected)
+				t.Errorf("GetMessageURL(%q, %q, %q) = %q, want %q", tt.addr, tt.basePath, tt.sessionID, result, tt.expected)
 			}
 		})
 	}

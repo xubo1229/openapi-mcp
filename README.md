@@ -191,11 +191,11 @@ When using HTTP mode, openapi-mcp serves an SSE (Server-Sent Events) based MCP s
 import "github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
 
 // Get the SSE connection URL
-sseURL := openapi2mcp.GetSSEURL("http://localhost:8080")
+sseURL := openapi2mcp.GetSSEURL(":8080", "/mcp")
 // Returns: "http://localhost:8080/mcp/sse"
 
 // Get the message endpoint URL (after receiving session ID from SSE)
-messageURL := openapi2mcp.GetMessageURL("http://localhost:8080", sessionID)
+messageURL := openapi2mcp.GetMessageURL(":8080", "/mcp", sessionID)
 // Returns: "http://localhost:8080/mcp/message?sessionId=<sessionID>"
 ```
 

@@ -145,50 +145,48 @@ func ServeHTTP(server *mcpserver.MCPServer, addr string, basePath string) error 
 	return sseServer.Start(addr)
 }
 
-// Backward-compatible ServeHTTP (defaults to /mcp)
-func ServeHTTPDefault(server *mcpserver.MCPServer, addr string) error {
-	return ServeHTTP(server, addr, "/mcp")
-}
-
 // GetSSEURL returns the URL for establishing an SSE connection to the MCP server.
-// baseURL should be the base URL where the server is hosted (e.g., "http://localhost:8080").
+// addr is the address the server is listening on (e.g., ":8080", "0.0.0.0:8080", "localhost:8080").
 // basePath is the base HTTP path (e.g., "/mcp").
 // Example usage:
 //
-//	url := openapi2mcp.GetSSEURL("http://localhost:8080", "/custom-base")
+//	url := openapi2mcp.GetSSEURL(":8080", "/custom-base")
 //	// Returns: "http://localhost:8080/custom-base/sse"
-func GetSSEURL(baseURL, basePath string) string {
-	baseURL = strings.TrimSuffix(baseURL, "/")
+func GetSSEURL(addr, basePath string) string {
 	if basePath == "" {
 		basePath = "/mcp"
 	}
-	return baseURL + basePath + "/sse"
-}
-
-// Backward-compatible GetSSEURL (defaults to /mcp)
-func GetSSEURLDefault(baseURL string) string {
-	return GetSSEURL(baseURL, "/mcp")
+	host := normalizeAddrToHost(addr)
+	return "http://" + host + basePath + "/sse"
 }
 
 // GetMessageURL returns the URL for sending JSON-RPC requests to the MCP server.
-// baseURL should be the base URL where the server is hosted (e.g., "http://localhost:8080").
+// addr is the address the server is listening on (e.g., ":8080", "0.0.0.0:8080", "localhost:8080").
 // basePath is the base HTTP path (e.g., "/mcp").
 // sessionID should be the session ID received from the SSE endpoint event.
 // Example usage:
 //
-//	url := openapi2mcp.GetMessageURL("http://localhost:8080", "/custom-base", "session-id-123")
+//	url := openapi2mcp.GetMessageURL(":8080", "/custom-base", "session-id-123")
 //	// Returns: "http://localhost:8080/custom-base/message?sessionId=session-id-123"
-func GetMessageURL(baseURL, basePath, sessionID string) string {
-	baseURL = strings.TrimSuffix(baseURL, "/")
+func GetMessageURL(addr, basePath, sessionID string) string {
 	if basePath == "" {
 		basePath = "/mcp"
 	}
-	return fmt.Sprintf("%s%s/message?sessionId=%s", baseURL, basePath, sessionID)
+	host := normalizeAddrToHost(addr)
+	return fmt.Sprintf("http://%s%s/message?sessionId=%s", host, basePath, sessionID)
 }
 
-// Backward-compatible GetMessageURL (defaults to /mcp)
-func GetMessageURLDefault(baseURL, sessionID string) string {
-	return GetMessageURL(baseURL, "/mcp", sessionID)
+// normalizeAddrToHost converts an addr (as used by net/http) to a host:port string suitable for URLs.
+// If addr is just ":8080", returns "localhost:8080". If it already includes a host, returns as is.
+func normalizeAddrToHost(addr string) string {
+	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		return "localhost"
+	}
+	if strings.HasPrefix(addr, ":") {
+		return "localhost" + addr
+	}
+	return addr
 }
 
 // HandlerForBasePath returns an http.Handler that serves the given MCP server at the specified basePath.
