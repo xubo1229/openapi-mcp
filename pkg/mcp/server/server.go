@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"sync"
 
@@ -493,8 +494,8 @@ func (s *MCPServer) AddNotificationHandler(
 
 func (s *MCPServer) handleInitialize(
 	ctx context.Context,
-	_ any,
-	_ mcp.InitializeRequest,
+	id any,
+	request mcp.InitializeRequest,
 ) (*mcp.InitializeResult, *requestError) {
 	capabilities := mcp.ServerCapabilities{}
 
@@ -532,7 +533,7 @@ func (s *MCPServer) handleInitialize(
 	}
 
 	result := mcp.InitializeResult{
-		ProtocolVersion: "2024-11-05",
+		ProtocolVersion: s.protocolVersion(request.Params.ProtocolVersion),
 		ServerInfo: mcp.Implementation{
 			Name:    s.name,
 			Version: s.version,
@@ -1055,4 +1056,12 @@ func (s *MCPServer) ListTools() []mcp.Tool {
 		tools = append(tools, entry.Tool)
 	}
 	return tools
+}
+
+// protocolVersion negotiates the MCP protocol version with the client.
+func (s *MCPServer) protocolVersion(clientVersion string) string {
+	if slices.Contains(mcp.ValidProtocolVersions, clientVersion) {
+		return clientVersion
+	}
+	return mcp.LATEST_PROTOCOL_VERSION
 }
