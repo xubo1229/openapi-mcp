@@ -3,7 +3,7 @@
 - `openapi-mcp [flags] <openapi-spec-path>`: Start the MCP server (stdio or HTTP)
 - `openapi-mcp validate <openapi-spec-path>`: Validate the OpenAPI spec and report actionable errors
 - `openapi-mcp lint <openapi-spec-path>`: Perform detailed OpenAPI linting with comprehensive suggestions
-- `openapi-mcp filter <openapi-spec-path>`: Output a filtered list of operations as JSON, applying `--tag`, `--include-desc-regex`, and `--exclude-desc-regex` (no server)
+- `openapi-mcp filter <openapi-spec-path>`: Output a filtered list of operations as JSON, applying `--tag`, `--include-desc-regex`, and `--exclude-desc-regex`, and `--function-list-file` (no server)
 
 ## Usage
 
@@ -43,11 +43,13 @@ openapi-mcp validate api.yaml
 openapi-mcp lint api.yaml
 ```
 
-### Filter Operations by Tag and Description
+### Filter Operations by Tag, Description, or Function List
 ```sh
 openapi-mcp filter --tag=admin api.yaml
 openapi-mcp filter --include-desc-regex=foo api.yaml
 openapi-mcp filter --tag=admin --include-desc-regex=foo api.yaml
+openapi-mcp filter --function-list-file=funcs.txt api.yaml
 ```
+You can use `--function-list-file=funcs.txt` to restrict the output to only the operations whose `operationId` is listed (one per line) in the given file. This filter is applied after tag and description filters.
 
 This will output a JSON array of operations matching the filters, including their name, description, tags, and input schema. 

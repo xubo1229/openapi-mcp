@@ -186,6 +186,28 @@ func main() {
 			}
 			ops = filtered
 		}
+		// Apply function list file filter if present
+		if flags.functionListFile != "" {
+			funcNames := make(map[string]struct{})
+			data, err := os.ReadFile(flags.functionListFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Could not read function list file: %v\n", err)
+				os.Exit(1)
+			}
+			for _, line := range regexp.MustCompile(`\r?\n`).Split(string(data), -1) {
+				line = regexp.MustCompile(`^\s+|\s+$`).ReplaceAllString(line, "")
+				if line != "" {
+					funcNames[line] = struct{}{}
+				}
+			}
+			var filtered []openapi2mcp.OpenAPIOperation
+			for _, op := range ops {
+				if _, ok := funcNames[op.OperationID]; ok {
+					filtered = append(filtered, op)
+				}
+			}
+			ops = filtered
+		}
 		// Output filtered operations as JSON
 		toolSummaries := make([]map[string]any, 0, len(ops))
 		for _, op := range ops {

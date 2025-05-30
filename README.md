@@ -33,7 +33,7 @@
       - [HTTP API for Validation and Linting](#http-api-for-validation-and-linting)
     - [Dry Run (Preview Tools as JSON)](#dry-run-preview-tools-as-json)
     - [Generate Documentation](#generate-documentation)
-    - [Filter Operations by Tag](#filter-operations-by-tag)
+    - [Filter Operations by Tag, Description, or Function List](#filter-operations-by-tag-description-or-function-list)
     - [Include/Exclude Operations by Description](#includeexclude-operations-by-description)
     - [Print Summary](#print-summary)
     - [Post-Process Schema with External Command](#post-process-schema-with-external-command)
@@ -336,18 +336,16 @@ bin/openapi-mcp --dry-run examples/fastly-openapi-mcp.yaml
 bin/openapi-mcp --doc=tools.md examples/fastly-openapi-mcp.yaml
 ```
 
-### Filter Operations by Tag
+### Filter Operations by Tag, Description, or Function List
 
 ```sh
 bin/openapi-mcp --tag=admin examples/fastly-openapi-mcp.yaml
-```
-
-### Include/Exclude Operations by Description
-
-```sh
 bin/openapi-mcp --include-desc-regex="user|account" examples/fastly-openapi-mcp.yaml
 bin/openapi-mcp --exclude-desc-regex="deprecated" examples/fastly-openapi-mcp.yaml
+bin/openapi-mcp --function-list-file=funcs.txt examples/fastly-openapi-mcp.yaml
 ```
+
+You can use `--function-list-file=funcs.txt` to restrict the output to only the operations whose `operationId` is listed (one per line) in the given file. This filter is applied after tag and description filters.
 
 ### Print Summary
 
@@ -375,7 +373,7 @@ bin/openapi-mcp --no-confirm-dangerous examples/fastly-openapi-mcp.yaml
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `validate <spec>` | Validate OpenAPI spec and report critical issues (missing operationIds, schema errors)                                         |
 | `lint <spec>`     | Comprehensive linting with detailed suggestions for best practices                                                             |
-| `filter <spec>`   | Output a filtered list of operations as JSON, applying `--tag`, `--include-desc-regex`, and `--exclude-desc-regex` (no server) |
+| `filter <spec>`   | Output a filtered list of operations as JSON, applying `--tag`, `--include-desc-regex`, `--exclude-desc-regex`, and `--function-list-file` (no server) |
 
 ### Flags
 
@@ -396,6 +394,7 @@ bin/openapi-mcp --no-confirm-dangerous examples/fastly-openapi-mcp.yaml
 | `--post-hook-cmd`        | -                    | Command to post-process schema JSON                      |
 | `--no-confirm-dangerous` | -                    | Disable confirmation for dangerous actions               |
 | `--extended`             | -                    | Enable human-friendly output (default is agent-friendly) |
+| `--function-list-file`   | -                    | Only include operations whose operationId is listed (one per line) in the given file (for filter command) |
 
 ## 📚 Library Usage
 
