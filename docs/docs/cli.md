@@ -3,7 +3,7 @@
 - `openapi-mcp [flags] <openapi-spec-path>`: Start the MCP server (stdio or HTTP)
 - `openapi-mcp validate <openapi-spec-path>`: Validate the OpenAPI spec and report actionable errors
 - `openapi-mcp lint <openapi-spec-path>`: Perform detailed OpenAPI linting with comprehensive suggestions
-- `openapi-mcp filter <openapi-spec-path>`: Output a filtered list of operations as JSON, applying `--tag`, `--include-desc-regex`, and `--exclude-desc-regex`, and `--function-list-file` (no server)
+- `openapi-mcp filter <openapi-spec-path>`: Output a filtered list of operations as JSON, applying `--tag`, `--include-desc-regex`, `--exclude-desc-regex`, and `--function-list-file` (no server)
 
 ## Usage
 

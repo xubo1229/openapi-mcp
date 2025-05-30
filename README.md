@@ -339,10 +339,10 @@ bin/openapi-mcp --doc=tools.md examples/fastly-openapi-mcp.yaml
 ### Filter Operations by Tag, Description, or Function List
 
 ```sh
-bin/openapi-mcp --tag=admin examples/fastly-openapi-mcp.yaml
-bin/openapi-mcp --include-desc-regex="user|account" examples/fastly-openapi-mcp.yaml
-bin/openapi-mcp --exclude-desc-regex="deprecated" examples/fastly-openapi-mcp.yaml
-bin/openapi-mcp --function-list-file=funcs.txt examples/fastly-openapi-mcp.yaml
+bin/openapi-mcp filter --tag=admin examples/fastly-openapi-mcp.yaml
+bin/openapi-mcp filter --include-desc-regex="user|account" examples/fastly-openapi-mcp.yaml
+bin/openapi-mcp filter --exclude-desc-regex="deprecated" examples/fastly-openapi-mcp.yaml
+bin/openapi-mcp filter --function-list-file=funcs.txt examples/fastly-openapi-mcp.yaml
 ```
 
 You can use `--function-list-file=funcs.txt` to restrict the output to only the operations whose `operationId` is listed (one per line) in the given file. This filter is applied after tag and description filters.

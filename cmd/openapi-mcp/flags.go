@@ -116,15 +116,15 @@ func printHelp() {
 	fmt.Print(`openapi-mcp: Expose OpenAPI APIs as MCP tools
 
 Usage:
-  openapi-mcp [flags] <openapi-spec-path>
+  openapi-mcp [flags] filter <openapi-spec-path>
   openapi-mcp [flags] validate <openapi-spec-path>
   openapi-mcp [flags] lint <openapi-spec-path>
-  openapi-mcp [flags] filter <openapi-spec-path>
+  openapi-mcp [flags] <openapi-spec-path>
 
 Commands:
+  filter <openapi-spec-path>    Output a filtered list of operations as JSON, applying --tag, --include-desc-regex, --exclude-desc-regex, and --function-list-file (no server)
   validate <openapi-spec-path>  Validate the OpenAPI spec and report actionable errors (with --http: starts validation API server)
   lint <openapi-spec-path>      Perform detailed OpenAPI linting with comprehensive suggestions (with --http: starts linting API server)
-  filter <openapi-spec-path>    Output a filtered list of operations as JSON, applying --tag, --include-desc-regex, --exclude-desc-regex, and --function-list-file (no server)
 
 Examples:
 
@@ -154,10 +154,10 @@ Examples:
     openapi-mcp --http=:8080 lint                 # REST API for linting
 
   Filtering & Documentation:
-    openapi-mcp --tag=admin api.yaml              # Only admin operations
-    openapi-mcp --dry-run api.yaml                # Preview generated tools
-    openapi-mcp --doc=tools.md api.yaml           # Generate documentation
-    openapi-mcp filter --tag=admin api.yaml       # Output only admin-tagged operations as JSON
+    openapi-mcp filter --tag=admin api.yaml              # Only admin operations
+    openapi-mcp filter --dry-run api.yaml                # Preview generated tools
+    openapi-mcp filter --doc=tools.md api.yaml           # Generate documentation
+    openapi-mcp filter --tag=admin api.yaml              # Output only admin-tagged operations as JSON
     openapi-mcp filter --include-desc-regex=foo api.yaml # Output operations whose description matches 'foo'
     openapi-mcp filter --function-list-file=funcs.txt api.yaml # Output only operations listed in funcs.txt
 
