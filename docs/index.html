@@ -265,7 +265,7 @@ func main() {
 	srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc)
 	
 	// Serve over HTTP
-	if err := openapi2mcp.ServeHTTP(srv, ":8080"); err != nil {
+	if err := openapi2mcp.ServeStreamableHTTP(srv, ":8080", "/mcp"); err != nil {
 		log.Fatal(err)
 	}
 }</code></pre>

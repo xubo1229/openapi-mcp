@@ -43,7 +43,12 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 			}
 			ops = openapi2mcp.ExtractOpenAPIOperations(d)
 			srv := openapi2mcp.NewServerWithOps("openapi-mcp", d.Info.Version, d, ops)
-			handler := makeMCPHandler(srv, m.BasePath)
+			var handler http.Handler
+			if flags.httpTransport == "streamable" {
+				handler = openapi2mcp.HandlerForStreamableHTTP(srv, m.BasePath)
+			} else {
+				handler = openapi2mcp.HandlerForBasePath(srv, m.BasePath)
+			}
 			mux.Handle(m.BasePath+"/", handler)
 			mux.Handle(m.BasePath, handler) // allow both /base and /base/
 			fmt.Fprintf(os.Stderr, "Mounted %s at %s\n", m.SpecPath, m.BasePath)
@@ -67,9 +72,15 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 		}
 		ops := openapi2mcp.ExtractOpenAPIOperations(d)
 		srv := openapi2mcp.NewServerWithOps("openapi-mcp", d.Info.Version, d, ops)
-		fmt.Fprintf(os.Stderr, "Starting MCP server (HTTP) on %s...\n", flags.httpAddr)
-		if err := openapi2mcp.ServeHTTP(srv, flags.httpAddr, "/mcp"); err != nil {
-			log.Fatalf("Failed to start MCP HTTP server: %v", err)
+		fmt.Fprintf(os.Stderr, "Starting MCP server (HTTP, %s transport) on %s...\n", flags.httpTransport, flags.httpAddr)
+		if flags.httpTransport == "streamable" {
+			if err := openapi2mcp.ServeStreamableHTTP(srv, flags.httpAddr, "/mcp"); err != nil {
+				log.Fatalf("Failed to start MCP HTTP server: %v", err)
+			}
+		} else {
+			if err := openapi2mcp.ServeHTTP(srv, flags.httpAddr, "/mcp"); err != nil {
+				log.Fatalf("Failed to start MCP HTTP server: %v", err)
+			}
 		}
 		return
 	}

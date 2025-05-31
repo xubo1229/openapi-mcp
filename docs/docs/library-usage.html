@@ -130,8 +130,16 @@
                 <td>Starts the server in stdio mode</td>
               </tr>
               <tr>
-                <td><code>ServeHTTP</code></td>
+                <td><code>ServeStreamableHTTP</code> (default), <code>ServeHTTP</code> (SSE)</td>
                 <td>Starts the server in HTTP mode</td>
+              </tr>
+              <tr>
+                <td><code>GetStreamableHTTPURL</code></td>
+                <td>Gets the URL for the Streamable HTTP endpoint</td>
+              </tr>
+              <tr>
+                <td><code>GetSSEURL</code>, <code>GetMessageURL</code></td>
+                <td>Gets URLs for SSE mode endpoints</td>
               </tr>
             </tbody>
           </table>
@@ -151,25 +159,97 @@ import (
 )
 
 func main() {
-	// Load OpenAPI spec
-	doc, err := openapi2mcp.LoadOpenAPISpec("openapi.yaml")
+	// Load the OpenAPI spec
+	specPath := os.Args[1]
+	doc, err := openapi2mcp.LoadOpenAPISpec(specPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to load OpenAPI spec: %v", err)
 	}
-	
+
 	// Create MCP server
 	srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc)
-	
-	// Serve over HTTP
-	if err := openapi2mcp.ServeHTTP(srv, ":8080"); err != nil {
-		log.Fatal(err)
+
+	// Determine server mode
+	if httpAddr := os.Getenv("HTTP_ADDR"); httpAddr != "" {
+		log.Printf("Starting HTTP server on %s", httpAddr)
+		// By default, uses StreamableHTTP
+		if err := openapi2mcp.ServeStreamableHTTP(srv, httpAddr, "/mcp"); err != nil {
+			log.Fatalf("HTTP server failed: %v", err)
+		}
+	} else {
+		log.Println("Starting stdio server")
+		if err := openapi2mcp.ServeStdio(srv); err != nil {
+			log.Fatalf("Stdio server failed: %v", err)
+		}
 	}
-	
-	// Or serve over stdio
-	// if err := openapi2mcp.ServeStdio(srv); err != nil {
-	//     log.Fatal(err)
-	// }
 }</code></pre>
+        </div>
+        
+        <h2>HTTP Mode</h2>
+        <p>
+          When using HTTP mode, openapi-mcp serves a StreamableHTTP-based MCP server by default. For developers building HTTP clients, the package provides convenient URL helper functions:
+        </p>
+
+        <div class="card mb-4">
+          <pre><code class="language-go">// Get the Streamable HTTP endpoint URL
+streamableURL := openapi2mcp.GetStreamableHTTPURL(":8080", "/mcp")
+// Returns: "http://localhost:8080/mcp"
+
+// For SSE mode (when using --http-transport=sse), you can use:
+sseURL := openapi2mcp.GetSSEURL(":8080", "/mcp")
+// Returns: "http://localhost:8080/mcp/sse"
+
+messageURL := openapi2mcp.GetMessageURL(":8080", "/mcp", sessionID)
+// Returns: "http://localhost:8080/mcp/message?sessionId=<sessionID>"</code></pre>
+        </div>
+
+        <h3>StreamableHTTP Client Connection Flow:</h3>
+        <ol>
+          <li>Send POST requests to the Streamable HTTP endpoint for requests/notifications</li>
+          <li>Send GET requests to the same endpoint to listen for notifications</li>
+          <li>Send DELETE requests to terminate the session</li>
+        </ol>
+
+        <div class="card mb-4">
+          <h4>Example with curl:</h4>
+          <pre><code class="language-bash"># Step 1: Initialize the session
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26"}}'
+
+# The response will include a Mcp-Session-Id header
+
+# Step 2: Send JSON-RPC requests
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -H "Mcp-Session-Id: <session-id>" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+
+# Step 3: Listen for notifications
+curl -N http://localhost:8080/mcp \
+  -H "Mcp-Session-Id: <session-id>"</code></pre>
+        </div>
+
+        <h3>SSE Client Connection Flow (when using --http-transport=sse):</h3>
+        <ol>
+          <li>Connect to the SSE endpoint to establish a persistent connection</li>
+          <li>Receive an `endpoint` event containing the session ID</li>
+          <li>Send JSON-RPC requests to the message endpoint using the session ID</li>
+          <li>Receive responses and notifications via the SSE stream</li>
+        </ol>
+
+        <div class="card mb-4">
+          <h4>Example with curl (SSE mode):</h4>
+          <pre><code class="language-bash"># Step 1: Connect to SSE endpoint (keep connection open)
+curl -N http://localhost:8080/mcp/sse
+
+# Output: event: endpoint
+#         data: /mcp/message?sessionId=<session-id>
+
+# Step 2: Send JSON-RPC requests (in another terminal)
+curl -X POST http://localhost:8080/mcp/message?sessionId=<session-id> \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</code></pre>
         </div>
         
         <h2>Advanced Usage with MCP Package</h2>
@@ -227,18 +307,6 @@ func main() {
 	if err := server.ServeStdio(srv); err != nil {
 		log.Fatal(err)
 	}
-}</code></pre>
-        </div>
-        
-        <h2>HTTP Server Mode</h2>
-        <p>
-          To serve the MCP server over HTTP instead of stdio:
-        </p>
-        
-        <div class="card mb-4">
-          <pre><code class="language-go">// Serve via HTTP
-if err := openapi2mcp.ServeHTTP(srv, ":8080"); err != nil {
-	log.Fatal(err)
 }</code></pre>
         </div>
         

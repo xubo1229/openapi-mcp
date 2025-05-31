@@ -176,6 +176,21 @@ func GetMessageURL(addr, basePath, sessionID string) string {
 	return fmt.Sprintf("http://%s%s/message?sessionId=%s", host, basePath, sessionID)
 }
 
+// GetStreamableHTTPURL returns the URL for the Streamable HTTP endpoint of the MCP server.
+// addr is the address the server is listening on (e.g., ":8080", "0.0.0.0:8080", "localhost:8080").
+// basePath is the base HTTP path (e.g., "/mcp").
+// Example usage:
+//
+//	url := openapi2mcp.GetStreamableHTTPURL(":8080", "/custom-base")
+//	// Returns: "http://localhost:8080/custom-base"
+func GetStreamableHTTPURL(addr, basePath string) string {
+	if basePath == "" {
+		basePath = "/mcp"
+	}
+	host := normalizeAddrToHost(addr)
+	return "http://" + host + basePath
+}
+
 // normalizeAddrToHost converts an addr (as used by net/http) to a host:port string suitable for URLs.
 // If addr is just ":8080", returns "localhost:8080". If it already includes a host, returns as is.
 func normalizeAddrToHost(addr string) string {
@@ -209,4 +224,48 @@ func HandlerForBasePath(server *mcpserver.MCPServer, basePath string) http.Handl
 		mcpserver.WithMessageEndpoint("/message"),
 	)
 	return sseServer
+}
+
+// ServeStreamableHTTP starts the MCP server using HTTP StreamableHTTP (wraps mcpserver.NewStreamableHTTPServer and Start).
+// addr is the address to listen on, e.g. ":8080".
+// basePath is the base HTTP path to mount the MCP server (e.g. "/mcp").
+// Returns an error if the server fails to start.
+// Example usage for ServeStreamableHTTP:
+//
+//	srv, _ := openapi2mcp.NewServer("petstore", "1.0.0", doc)
+//	openapi2mcp.ServeStreamableHTTP(srv, ":8080", "/custom-base")
+func ServeStreamableHTTP(server *mcpserver.MCPServer, addr string, basePath string) error {
+	streamableAuthContextFunc := func(ctx context.Context, r *http.Request) context.Context {
+		return authContextFunc(ctx, r)
+	}
+
+	if basePath == "" {
+		basePath = "/mcp"
+	}
+
+	streamableServer := mcpserver.NewStreamableHTTPServer(server,
+		mcpserver.WithHTTPContextFunc(streamableAuthContextFunc),
+		mcpserver.WithEndpointPath(basePath),
+	)
+	return streamableServer.Start(addr)
+}
+
+// HandlerForStreamableHTTP returns an http.Handler that serves the given MCP server at the specified basePath using StreamableHTTP.
+// This is useful for multi-mount HTTP servers, where you want to serve multiple OpenAPI schemas at different URL paths.
+// Example usage:
+//
+//	handler := openapi2mcp.HandlerForStreamableHTTP(srv, "/petstore")
+//	mux.Handle("/petstore", handler)
+func HandlerForStreamableHTTP(server *mcpserver.MCPServer, basePath string) http.Handler {
+	streamableAuthContextFunc := func(ctx context.Context, r *http.Request) context.Context {
+		return authContextFunc(ctx, r)
+	}
+	if basePath == "" {
+		basePath = "/mcp"
+	}
+	streamableServer := mcpserver.NewStreamableHTTPServer(server,
+		mcpserver.WithHTTPContextFunc(streamableAuthContextFunc),
+		mcpserver.WithEndpointPath(basePath),
+	)
+	return streamableServer
 }

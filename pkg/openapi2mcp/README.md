@@ -33,8 +33,8 @@ func main() {
         // Create MCP server
         srv := openapi2mcp.NewServer("myapi", doc.Info.Version, doc)
 
-        // Serve over HTTP
-        if err := openapi2mcp.ServeHTTP(srv, ":8080"); err != nil {
+        // Serve over HTTP (StreamableHTTP is now the default)
+        if err := openapi2mcp.ServeStreamableHTTP(srv, ":8080", "/mcp"); err != nil {
                 log.Fatal(err)
         }
 
@@ -105,7 +105,7 @@ func main() {
 ## Features
 
 - Convert OpenAPI 3.x specifications to MCP tool servers
-- Support for HTTP and stdio transport
+- Support for HTTP (StreamableHTTP is default, SSE also available) and stdio transport
 - Automatic tool generation from OpenAPI operations
 - Built-in validation and error handling
 - AI-optimized responses with structured output
@@ -113,3 +113,18 @@ func main() {
 ## API Documentation
 
 See [GoDoc](https://pkg.go.dev/github.com/jedisct1/openapi-mcp/pkg/openapi2mcp) for complete API documentation.
+
+### HTTP Client Development
+
+When using HTTP mode, openapi-mcp now serves a StreamableHTTP-based MCP server by default. For developers building HTTP clients, you can interact with the `/mcp` endpoint using POST/GET/DELETE as per the StreamableHTTP protocol. SSE is still available by running with the `--http-transport=sse` flag or using `ServeHTTP` in Go.
+
+See the [StreamableHTTP specification](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) for protocol details.
+
+If you need SSE, you can still use:
+
+```go
+// Serve over HTTP using SSE
+if err := openapi2mcp.ServeHTTP(srv, ":8080", "/mcp"); err != nil {
+    log.Fatal(err)
+}
+```

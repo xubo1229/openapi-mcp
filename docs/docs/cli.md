@@ -31,7 +31,7 @@ openapi-mcp --http=:8080 api.yaml
 ```sh
 openapi-mcp --http=:8080 --mount /petstore:petstore.yaml --mount /books:books.yaml
 ```
-This will serve the Petstore API at `/petstore/sse`, `/petstore/message`, etc., and the Books API at `/books/sse`, `/books/message`, etc.
+By default, this will serve the Petstore API at `/petstore` (StreamableHTTP), and the Books API at `/books`. If you use `--http-transport=sse`, endpoints like `/petstore/sse` and `/petstore/message` will be available for SSE clients.
 
 ### Validate an OpenAPI Spec
 ```sh

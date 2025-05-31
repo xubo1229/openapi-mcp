@@ -19,6 +19,7 @@ type cliFlags struct {
 	bearerToken        string
 	basicAuth          string
 	httpAddr           string
+	httpTransport      string // new: sse (default) or streamable
 	includeDescRegex   string
 	excludeDescRegex   string
 	dryRun             bool
@@ -73,6 +74,7 @@ func parseFlags() *cliFlags {
 	flag.StringVar(&flags.bearerToken, "bearer-token", os.Getenv("BEARER_TOKEN"), "Bearer token for Authorization header (overrides BEARER_TOKEN env)")
 	flag.StringVar(&flags.basicAuth, "basic-auth", os.Getenv("BASIC_AUTH"), "Basic auth (user:pass) for Authorization header (overrides BASIC_AUTH env)")
 	flag.StringVar(&flags.httpAddr, "http", "", "Serve over HTTP on this address (e.g., :8080). For MCP server: serves tools via HTTP. For validate/lint: creates REST API endpoints.")
+	flag.StringVar(&flags.httpTransport, "http-transport", "streamable", "HTTP transport to use for MCP server: 'streamable' (default) or 'sse'")
 	flag.StringVar(&flags.includeDescRegex, "include-desc-regex", "", "Only include APIs whose description matches this regex (overrides INCLUDE_DESC_REGEX env)")
 	flag.StringVar(&flags.excludeDescRegex, "exclude-desc-regex", "", "Exclude APIs whose description matches this regex (overrides EXCLUDE_DESC_REGEX env)")
 	flag.BoolVar(&flags.dryRun, "dry-run", false, "Print the generated MCP tool schemas and exit (do not start the server)")
@@ -134,11 +136,12 @@ Examples:
 
   MCP Server over HTTP (single API):
     openapi-mcp --http=:8080 api.yaml             # HTTP server on port 8080
+    openapi-mcp --http-transport=sse --http=:8080 api.yaml  # Use SSE transport
     openapi-mcp --http=:8080 --extended api.yaml  # With human-friendly output
 
   MCP Server over HTTP (multiple APIs):
     openapi-mcp --http=:8080 --mount /petstore:petstore.yaml --mount /books:books.yaml
-    # Each API is served at its own base path (e.g., /petstore/sse, /books/sse)
+    # Each API is served at its own base path (e.g., /petstore, /books) using StreamableHTTP by default
     # If --mount is used, positional OpenAPI spec arguments are ignored in HTTP mode.
 
     # With authentication via HTTP headers:
@@ -165,6 +168,7 @@ Examples:
     openapi-mcp --base-url=https://api.prod.com api.yaml    # Override base URL
     openapi-mcp --include-desc-regex="user.*" api.yaml      # Filter by description
     openapi-mcp --no-confirm-dangerous api.yaml             # Skip confirmations
+    openapi-mcp --http-transport=sse --http=:8080 api.yaml  # Use SSE transport
 
 Flags:
   --extended           Enable extended (human-friendly) output (default: minimal/agent)
@@ -177,6 +181,7 @@ Flags:
                        X-API-Key, Api-Key (for API keys)
                        Authorization: Bearer <token> (for bearer tokens)
                        Authorization: Basic <credentials> (for basic auth)
+  --http-transport     HTTP transport to use for MCP server: 'streamable' (default) or 'sse'
   --include-desc-regex Only include APIs whose description matches this regex
   --exclude-desc-regex Exclude APIs whose description matches this regex
   --dry-run            Print the generated MCP tool schemas as JSON and exit
