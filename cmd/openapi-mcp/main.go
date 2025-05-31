@@ -212,48 +212,55 @@ func main() {
 		}
 
 		// Patch doc.Paths to only include filtered operations
-		opMap := make(map[string]map[string]struct{}) // path -> method -> present
-		for _, op := range ops {
-			if _, ok := opMap[op.Path]; !ok {
-				opMap[op.Path] = make(map[string]struct{})
+		if len(ops) == 0 {
+			// If no operations remain after filtering, clear all paths
+			for path := range doc.Paths.Map() {
+				doc.Paths.Delete(path)
 			}
-			opMap[op.Path][strings.ToLower(op.Method)] = struct{}{}
-		}
-		for path, pathItem := range doc.Paths.Map() {
-			// Remove methods not in opMap
-			for method := range pathItem.Operations() {
-				if _, ok := opMap[path][strings.ToLower(method)]; !ok {
-					// Remove this method from the PathItem
-					switch strings.ToLower(method) {
-					case "get":
-						pathItem.Get = nil
-					case "put":
-						pathItem.Put = nil
-					case "post":
-						pathItem.Post = nil
-					case "delete":
-						pathItem.Delete = nil
-					case "options":
-						pathItem.Options = nil
-					case "head":
-						pathItem.Head = nil
-					case "patch":
-						pathItem.Patch = nil
-					case "trace":
-						pathItem.Trace = nil
+		} else {
+			opMap := make(map[string]map[string]struct{}) // path -> method -> present
+			for _, op := range ops {
+				if _, ok := opMap[op.Path]; !ok {
+					opMap[op.Path] = make(map[string]struct{})
+				}
+				opMap[op.Path][strings.ToLower(op.Method)] = struct{}{}
+			}
+			for path, pathItem := range doc.Paths.Map() {
+				// Remove methods not in opMap
+				for method := range pathItem.Operations() {
+					if _, ok := opMap[path][strings.ToLower(method)]; !ok {
+						// Remove this method from the PathItem
+						switch strings.ToLower(method) {
+						case "get":
+							pathItem.Get = nil
+						case "put":
+							pathItem.Put = nil
+						case "post":
+							pathItem.Post = nil
+						case "delete":
+							pathItem.Delete = nil
+						case "options":
+							pathItem.Options = nil
+						case "head":
+							pathItem.Head = nil
+						case "patch":
+							pathItem.Patch = nil
+						case "trace":
+							pathItem.Trace = nil
+						}
 					}
 				}
-			}
-			// If all methods are nil, remove the path entirely
-			hasOp := false
-			for _, op := range pathItem.Operations() {
-				if op != nil {
-					hasOp = true
-					break
+				// If all methods are nil, remove the path entirely
+				hasOp := false
+				for _, op := range pathItem.Operations() {
+					if op != nil {
+						hasOp = true
+						break
+					}
 				}
-			}
-			if !hasOp {
-				doc.Paths.Delete(path)
+				if !hasOp {
+					doc.Paths.Delete(path)
+				}
 			}
 		}
 
