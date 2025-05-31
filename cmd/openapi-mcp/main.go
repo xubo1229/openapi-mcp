@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
+	"gopkg.in/yaml.v3"
 )
 
 // main is the entrypoint for the openapi-mcp CLI.
@@ -208,24 +210,51 @@ func main() {
 			}
 			ops = filtered
 		}
-		// Output filtered operations as JSON
-		toolSummaries := make([]map[string]any, 0, len(ops))
-		for _, op := range ops {
-			name := op.OperationID
-			desc := op.Description
-			if desc == "" {
-				desc = op.Summary
+		// Output the filtered OpenAPI spec as a valid OpenAPI file using kin-openapi's marshaling
+		ext := ""
+		if dot := len(specPath) - 1 - len(specPath); dot >= 0 {
+			ext = ""
+		} else {
+			dot = len(specPath) - 1
+			for i := len(specPath) - 1; i >= 0; i-- {
+				if specPath[i] == '.' {
+					dot = i
+					break
+				}
 			}
-			inputSchema := openapi2mcp.BuildInputSchema(op.Parameters, op.RequestBody)
-			toolSummaries = append(toolSummaries, map[string]any{
-				"name":        name,
-				"description": desc,
-				"tags":        op.Tags,
-				"inputSchema": inputSchema,
-			})
+			if dot < len(specPath)-1 {
+				ext = specPath[dot+1:]
+			}
 		}
-		jsonBytes, _ := json.MarshalIndent(toolSummaries, "", "  ")
-		fmt.Println(string(jsonBytes))
+		ext = strings.ToLower(ext)
+		if ext == "yaml" || ext == "yml" {
+			// Output as YAML using kin-openapi's MarshalYAML
+			yamlVal, err := doc.MarshalYAML()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to marshal OpenAPI as YAML: %v\n", err)
+				os.Exit(1)
+			}
+			switch v := yamlVal.(type) {
+			case []byte:
+				fmt.Print(string(v))
+			default:
+				// Fallback: use yaml.v3 Marshal if needed
+				b, err := yaml.Marshal(v)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error: Failed to marshal YAML fallback: %v\n", err)
+					os.Exit(1)
+				}
+				fmt.Print(string(b))
+			}
+		} else {
+			// Output as JSON using encoding/json
+			jsonBytes, err := json.MarshalIndent(doc, "", "  ")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to marshal OpenAPI as JSON: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(string(jsonBytes))
+		}
 		os.Exit(0)
 	}
 
