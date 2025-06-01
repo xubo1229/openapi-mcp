@@ -72,43 +72,11 @@ func TestRegisterOpenAPITools(t *testing.T) {
 		found := false
 		for _, c := range toolResult.Content {
 			if tc, ok := c.(mcp.TextContent); ok {
-				switch toolResult.OutputType {
-				case "json":
-					var obj map[string]any
-					if err := json.Unmarshal([]byte(tc.Text), &obj); err == nil {
-						if errObj, ok := obj["error"].(map[string]any); ok {
-							httpStatus, hasHttpStatus := errObj["http_status"]
-							message, hasMessage := errObj["message"].(string)
-							if hasHttpStatus && hasMessage {
-								// Convert to int for comparison (could be int or float64 from JSON)
-								var statusCode int
-								switch v := httpStatus.(type) {
-								case float64:
-									statusCode = int(v)
-								case int:
-									statusCode = v
-								}
-								if statusCode == 404 && strings.Contains(message, "404") {
-									found = true
-								}
-							}
-						}
-					}
-				case "file":
-					var fileObj map[string]any
-					if err := json.Unmarshal([]byte(tc.Text), &fileObj); err == nil {
-						if _, ok := fileObj["file_base64"]; ok {
-							if _, ok := fileObj["mime_type"]; ok {
-								if _, ok := fileObj["file_name"]; ok {
-									found = true
-								}
-							}
-						}
-					}
-				default:
-					if strings.Contains(tc.Text, "Status: 404") && strings.Contains(tc.Text, "404 page not found") {
-						found = true
-					}
+				// Check for HTTP error text patterns
+				if strings.Contains(tc.Text, "HTTP Error") && strings.Contains(tc.Text, "404") {
+					found = true
+				} else if strings.Contains(tc.Text, "Status: 404") && strings.Contains(tc.Text, "404 page not found") {
+					found = true
 				}
 			}
 		}

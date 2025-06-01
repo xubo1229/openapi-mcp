@@ -200,27 +200,20 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				exampleJSON, _ := json.Marshal(exampleArgs)
 				suggestionStr += string(exampleJSON)
 				suggestions = append(suggestions, suggestionStr)
-				errorObj := map[string]any{
-					"error": map[string]any{
-						"code":        "validation_failed",
-						"message":     strings.TrimSpace(errMsgs),
-						"missing":     missingFields,
-						"suggestions": suggestions,
-					},
+
+				// Create a simple text error message
+				errorText := strings.TrimSpace(errMsgs)
+				if len(suggestions) > 0 {
+					errorText += "\n\n" + strings.Join(suggestions, "\n")
 				}
-				apiResponse := map[string]any{"type": "api_response"}
-				for k, v := range errorObj {
-					apiResponse[k] = v
-				}
-				return mcp.NewToolResultJSONError(
-					apiResponse,
+
+				return mcp.NewToolResultError(
+					errorText,
 					inputSchema,
 					args,
 					[]any{args},
 					"call <tool> <json-args>",
 					[]string{"list", "schema <tool>"},
-					"structured",
-					"json",
 				), nil
 			}
 
@@ -442,30 +435,23 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 						OutputType:   "file",
 					}, nil
 				}
-				errorObj := map[string]any{
-					"type": "api_response",
-					"error": map[string]any{
-						"code":        "http_error",
-						"http_status": resp.StatusCode,
-						"message":     fmt.Sprintf("%s (HTTP %d)", http.StatusText(resp.StatusCode), resp.StatusCode),
-						"details":     string(respBody),
-						"suggestion":  suggestion,
-						"operation": map[string]any{
-							"id":          opCopy.OperationID,
-							"summary":     opSummary,
-							"description": opDesc,
-						},
-					},
+				// Create a simple text error message
+				errorText := fmt.Sprintf("HTTP Error: %s (HTTP %d)", http.StatusText(resp.StatusCode), resp.StatusCode)
+				if len(respBody) > 0 {
+					errorText += "\nDetails: " + string(respBody)
 				}
-				return mcp.NewToolResultJSONError(
-					errorObj,
+				if suggestion != "" {
+					errorText += "\nSuggestion: " + suggestion
+				}
+				errorText += fmt.Sprintf("\nOperation: %s (%s)", opCopy.OperationID, opSummary)
+
+				return mcp.NewToolResultError(
+					errorText,
 					inputSchema,
 					args,
 					[]any{args},
 					"call <tool> <json-args>",
 					[]string{"list", "schema <tool>"},
-					"structured",
-					"json",
 				), nil
 			}
 
@@ -556,25 +542,17 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			}
 			if (opts == nil || opts.ConfirmDangerousActions) && (method == "PUT" || method == "POST" || method == "DELETE") {
 				if _, confirmed := args["__confirmed"]; !confirmed {
-					confirmObj := map[string]any{
-						"confirmation_required": true,
-						"message":               "This action is irreversible. Proceed?",
-						"action":                name,
-					}
-					apiResponse := map[string]any{"type": "confirmation_request"}
-					for k, v := range confirmObj {
-						apiResponse[k] = v
-					}
-					return mcp.NewToolResultJSON(
-						apiResponse,
-						nil,
-						nil,
-						nil,
-						"",
-						nil,
-						"structured",
-						"json",
-					), nil
+					confirmText := fmt.Sprintf("⚠️  CONFIRMATION REQUIRED\n\nAction: %s\nThis action is irreversible. Proceed?\n\nTo confirm, retry the call with {\"__confirmed\": true} added to your arguments.", name)
+					return &mcp.CallToolResult{
+						Content: []mcp.Content{
+							mcp.TextContent{
+								Type: "text",
+								Text: confirmText,
+							},
+						},
+						OutputFormat: "unstructured",
+						OutputType:   "text",
+					}, nil
 				}
 			}
 			return &mcp.CallToolResult{
