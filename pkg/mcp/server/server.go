@@ -964,11 +964,16 @@ func (s *MCPServer) handleToolCall(
 	}
 
 	if !ok {
-		return nil, &requestError{
-			id:   id,
-			code: mcp.INVALID_PARAMS,
-			err:  fmt.Errorf("tool '%s' not found: %w", request.Params.Name, ErrToolNotFound),
-		}
+		errorMsg := fmt.Sprintf("Tool '%s' not found. Available tools can be listed using the 'tools/list' method.", request.Params.Name)
+		return &mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: errorMsg,
+				},
+			},
+			IsError: true,
+		}, nil
 	}
 
 	finalHandler := tool.Handler

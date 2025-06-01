@@ -143,9 +143,11 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				_ = json.Unmarshal(inputSchemaJSON, &schemaObj)
 				properties, _ := schemaObj["properties"].(map[string]any)
 				for _, verr := range result.Errors() {
-					errMsg := verr.String()
-					// If missing required property, add description
-					if verr.Type() == "required" {
+					errMsg := ""
+
+					// Handle different validation error types with plain text messages
+					switch verr.Type() {
+					case "required":
 						if missingRaw, ok := verr.Details()["property"]; ok {
 							if missing, ok := missingRaw.(string); ok {
 								missingFields = append(missingFields, missing)
@@ -164,12 +166,31 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 									}
 									if info != "" {
 										errMsg = "Missing required parameter: '" + missing + "' (" + info + "). Please provide this parameter."
+									} else {
+										errMsg = "Missing required parameter: '" + missing + "'"
 									}
+								} else {
+									errMsg = "Missing required parameter: '" + missing + "'"
 								}
 							}
 						}
+					case "invalid_type":
+						// Convert "Invalid type. Expected: string, given: integer" to plain text
+						errMsg = verr.String()
+					case "enum":
+						// Convert enum validation errors to plain text
+						errMsg = verr.String()
+					case "invalid_union", "one_of", "any_of":
+						// Convert union/oneOf/anyOf errors to plain text
+						errMsg = "Invalid value. " + verr.String()
+					default:
+						// For any other validation error types, ensure it's plain text
+						errMsg = verr.String()
 					}
-					errMsgs += errMsg + "\n"
+
+					if errMsg != "" {
+						errMsgs += errMsg + "\n"
+					}
 				}
 				// Suggest a retry with an example argument set
 				exampleArgs := map[string]any{}
