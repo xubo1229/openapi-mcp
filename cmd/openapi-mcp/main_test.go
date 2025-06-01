@@ -77,8 +77,20 @@ func TestRegisterOpenAPITools(t *testing.T) {
 					var obj map[string]any
 					if err := json.Unmarshal([]byte(tc.Text), &obj); err == nil {
 						if errObj, ok := obj["error"].(map[string]any); ok {
-							if errObj["http_status"] == float64(404) && strings.Contains(errObj["message"].(string), "404") {
-								found = true
+							httpStatus, hasHttpStatus := errObj["http_status"]
+							message, hasMessage := errObj["message"].(string)
+							if hasHttpStatus && hasMessage {
+								// Convert to int for comparison (could be int or float64 from JSON)
+								var statusCode int
+								switch v := httpStatus.(type) {
+								case float64:
+									statusCode = int(v)
+								case int:
+									statusCode = v
+								}
+								if statusCode == 404 && strings.Contains(message, "404") {
+									found = true
+								}
 							}
 						}
 					}

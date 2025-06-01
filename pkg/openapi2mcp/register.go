@@ -212,23 +212,16 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				for k, v := range errorObj {
 					apiResponse[k] = v
 				}
-				errorJSON, _ := json.MarshalIndent(apiResponse, "", "  ")
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{
-						mcp.TextContent{
-							Type: "json",
-							Text: string(errorJSON),
-						},
-					},
-					IsError:      true,
-					Schema:       inputSchema,
-					Arguments:    args,
-					Examples:     []any{args},
-					Usage:        "call <tool> <json-args>",
-					NextSteps:    []string{"list", "schema <tool>"},
-					OutputFormat: "structured",
-					OutputType:   "json",
-				}, nil
+				return mcp.NewToolResultJSONError(
+					apiResponse,
+					inputSchema,
+					args,
+					[]any{args},
+					"call <tool> <json-args>",
+					[]string{"list", "schema <tool>"},
+					"structured",
+					"json",
+				), nil
 			}
 
 			// Build URL path with path parameters
@@ -464,23 +457,16 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 						},
 					},
 				}
-				errorJSON, _ := json.MarshalIndent(errorObj, "", "  ")
-				return &mcp.CallToolResult{
-					Content: []mcp.Content{
-						mcp.TextContent{
-							Type: "json",
-							Text: string(errorJSON),
-						},
-					},
-					IsError:      true,
-					Schema:       inputSchema,
-					Arguments:    args,
-					Examples:     []any{args},
-					Usage:        "call <tool> <json-args>",
-					NextSteps:    []string{"list", "schema <tool>"},
-					OutputFormat: "structured",
-					OutputType:   "json",
-				}, nil
+				return mcp.NewToolResultJSONError(
+					errorObj,
+					inputSchema,
+					args,
+					[]any{args},
+					"call <tool> <json-args>",
+					[]string{"list", "schema <tool>"},
+					"structured",
+					"json",
+				), nil
 			}
 
 			// Handle binary/file responses for success
@@ -579,18 +565,16 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 					for k, v := range confirmObj {
 						apiResponse[k] = v
 					}
-					jsonOut, _ := json.MarshalIndent(apiResponse, "", "  ")
-					return &mcp.CallToolResult{
-						Content: []mcp.Content{
-							mcp.TextContent{
-								Type: "json",
-								Text: string(jsonOut),
-							},
-						},
-						OutputFormat: "structured",
-						OutputType:   "json",
-						IsError:      false,
-					}, nil
+					return mcp.NewToolResultJSON(
+						apiResponse,
+						nil,
+						nil,
+						nil,
+						"",
+						nil,
+						"structured",
+						"json",
+					), nil
 				}
 			}
 			return &mcp.CallToolResult{

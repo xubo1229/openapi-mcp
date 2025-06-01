@@ -344,6 +344,47 @@ func NewToolResultError(text string, schema map[string]any, arguments map[string
 	}
 }
 
+// NewToolResultJSON creates a new CallToolResult with JSON content as text
+func NewToolResultJSON(data any, schema map[string]any, arguments map[string]any, examples []any, usage string, nextSteps []string, outputFormat string, outputType string) *CallToolResult {
+	jsonBytes, _ := json.MarshalIndent(data, "", "  ")
+	return &CallToolResult{
+		Content: []Content{
+			TextContent{
+				Type: "text",
+				Text: string(jsonBytes),
+			},
+		},
+		Schema:       schema,
+		Arguments:    arguments,
+		Examples:     examples,
+		Usage:        usage,
+		NextSteps:    nextSteps,
+		OutputFormat: outputFormat,
+		OutputType:   outputType,
+	}
+}
+
+// NewToolResultJSONError creates a new CallToolResult with JSON error content as text
+func NewToolResultJSONError(data any, schema map[string]any, arguments map[string]any, examples []any, usage string, nextSteps []string, outputFormat string, outputType string) *CallToolResult {
+	jsonBytes, _ := json.MarshalIndent(data, "", "  ")
+	return &CallToolResult{
+		Content: []Content{
+			TextContent{
+				Type: "text",
+				Text: string(jsonBytes),
+			},
+		},
+		IsError:      true,
+		Schema:       schema,
+		Arguments:    arguments,
+		Examples:     examples,
+		Usage:        usage,
+		NextSteps:    nextSteps,
+		OutputFormat: outputFormat,
+		OutputType:   outputType,
+	}
+}
+
 // NewToolResultErrorFromErr creates a new CallToolResult with an error message.
 // If an error is provided, its details will be appended to the text message.
 // Any errors that originate from the tool SHOULD be reported inside the result object.
