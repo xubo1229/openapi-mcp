@@ -20,6 +20,204 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
+// generateAI400ErrorResponse creates a comprehensive, AI-optimized error response for 400 HTTP errors
+// that helps agents understand how to correctly use the tool.
+func generateAI400ErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, args map[string]any, responseBody string) string {
+	var response strings.Builder
+
+	// Start with clear explanation
+	response.WriteString("BAD REQUEST (400): The API call failed due to incorrect or invalid parameters.\n\n")
+
+	// Operation context
+	response.WriteString(fmt.Sprintf("OPERATION: %s", op.OperationID))
+	if op.Summary != "" {
+		response.WriteString(fmt.Sprintf(" - %s", op.Summary))
+	}
+	response.WriteString("\n")
+	if op.Description != "" {
+		response.WriteString(fmt.Sprintf("DESCRIPTION: %s\n", op.Description))
+	}
+	response.WriteString("\n")
+
+	// Parse the input schema to provide detailed parameter guidance
+	var schemaObj map[string]any
+	_ = json.Unmarshal(inputSchemaJSON, &schemaObj)
+
+	if properties, ok := schemaObj["properties"].(map[string]any); ok && len(properties) > 0 {
+		response.WriteString("PARAMETER REQUIREMENTS:\n")
+
+		// Required parameters
+		if required, ok := schemaObj["required"].([]any); ok && len(required) > 0 {
+			response.WriteString("• Required parameters:\n")
+			for _, req := range required {
+				if reqStr, ok := req.(string); ok {
+					if prop, ok := properties[reqStr].(map[string]any); ok {
+						response.WriteString(fmt.Sprintf("  - %s", reqStr))
+						if typeStr, ok := prop["type"].(string); ok {
+							response.WriteString(fmt.Sprintf(" (%s)", typeStr))
+						}
+						if desc, ok := prop["description"].(string); ok && desc != "" {
+							response.WriteString(fmt.Sprintf(": %s", desc))
+						}
+						response.WriteString("\n")
+					}
+				}
+			}
+			response.WriteString("\n")
+		}
+
+		// All parameters with details
+		response.WriteString("• All available parameters:\n")
+		for paramName, paramDef := range properties {
+			if prop, ok := paramDef.(map[string]any); ok {
+				response.WriteString(fmt.Sprintf("  - %s", paramName))
+
+				// Type information
+				if typeStr, ok := prop["type"].(string); ok {
+					response.WriteString(fmt.Sprintf(" (%s)", typeStr))
+				}
+
+				// Required indicator
+				if required, ok := schemaObj["required"].([]any); ok {
+					for _, req := range required {
+						if reqStr, ok := req.(string); ok && reqStr == paramName {
+							response.WriteString(" [REQUIRED]")
+							break
+						}
+					}
+				}
+
+				// Description
+				if desc, ok := prop["description"].(string); ok && desc != "" {
+					response.WriteString(fmt.Sprintf(": %s", desc))
+				}
+
+				// Enum values
+				if enum, ok := prop["enum"].([]any); ok && len(enum) > 0 {
+					response.WriteString(" | Valid values: ")
+					var enumStrs []string
+					for _, e := range enum {
+						enumStrs = append(enumStrs, fmt.Sprintf("%v", e))
+					}
+					response.WriteString(strings.Join(enumStrs, ", "))
+				}
+
+				response.WriteString("\n")
+			}
+		}
+		response.WriteString("\n")
+	}
+
+	// Analyze current arguments
+	if len(args) > 0 {
+		response.WriteString("YOUR CURRENT ARGUMENTS:\n")
+		argsJSON, _ := json.MarshalIndent(args, "", "  ")
+		response.WriteString(string(argsJSON))
+		response.WriteString("\n\n")
+	}
+
+	// Server error details if available
+	if responseBody != "" {
+		response.WriteString("SERVER ERROR DETAILS:\n")
+		response.WriteString(responseBody)
+		response.WriteString("\n\n")
+	}
+
+	// Generate example with correct parameters
+	response.WriteString("EXAMPLE CORRECT USAGE:\n")
+	if properties, ok := schemaObj["properties"].(map[string]any); ok {
+		exampleArgs := map[string]any{}
+
+		// Prioritize required parameters
+		if required, ok := schemaObj["required"].([]any); ok {
+			for _, req := range required {
+				if reqStr, ok := req.(string); ok {
+					if prop, ok := properties[reqStr].(map[string]any); ok {
+						exampleArgs[reqStr] = generateExampleValue(prop)
+					}
+				}
+			}
+		}
+
+		// Add some optional parameters for completeness
+		count := 0
+		for paramName, paramDef := range properties {
+			if _, exists := exampleArgs[paramName]; !exists && count < 3 {
+				if prop, ok := paramDef.(map[string]any); ok {
+					exampleArgs[paramName] = generateExampleValue(prop)
+					count++
+				}
+			}
+		}
+
+		exampleJSON, _ := json.MarshalIndent(exampleArgs, "", "  ")
+		response.WriteString(fmt.Sprintf("call %s %s\n\n", op.OperationID, string(exampleJSON)))
+	}
+
+	// Actionable guidance
+	response.WriteString("TROUBLESHOOTING STEPS:\n")
+	response.WriteString("1. Verify all required parameters are provided\n")
+	response.WriteString("2. Check parameter types match the schema (string, number, boolean, etc.)\n")
+	response.WriteString("3. Ensure enum values are from the allowed list\n")
+	response.WriteString("4. Validate parameter formats (dates, emails, URLs, etc.)\n")
+	response.WriteString("5. Check for missing or incorrectly named parameters\n")
+	response.WriteString("6. Review the server error details above for specific validation failures\n")
+
+	return response.String()
+}
+
+// generateExampleValue creates appropriate example values based on the parameter schema
+func generateExampleValue(prop map[string]any) any {
+	typeStr, _ := prop["type"].(string)
+
+	// Check for enum values first
+	if enum, ok := prop["enum"].([]any); ok && len(enum) > 0 {
+		return enum[0]
+	}
+
+	// Check for example values in schema
+	if example, ok := prop["example"]; ok {
+		return example
+	}
+
+	// Generate based on type
+	switch typeStr {
+	case "string":
+		if format, ok := prop["format"].(string); ok {
+			switch format {
+			case "email":
+				return "user@example.com"
+			case "uri", "url":
+				return "https://example.com"
+			case "date":
+				return "2024-01-01"
+			case "date-time":
+				return "2024-01-01T00:00:00Z"
+			case "uuid":
+				return "123e4567-e89b-12d3-a456-426614174000"
+			default:
+				return "example_string"
+			}
+		}
+		return "example_string"
+	case "number":
+		return 123.45
+	case "integer":
+		return 123
+	case "boolean":
+		return true
+	case "array":
+		if items, ok := prop["items"].(map[string]any); ok {
+			return []any{generateExampleValue(items)}
+		}
+		return []any{"item1", "item2"}
+	case "object":
+		return map[string]any{"key": "value"}
+	default:
+		return nil
+	}
+}
+
 // RegisterOpenAPITools registers each OpenAPI operation as an MCP tool with a real HTTP handler.
 // Also adds tools for externalDocs, info, and describe if present in the OpenAPI spec.
 // The handler validates arguments, builds the HTTP request, and returns the HTTP response as the tool result.
@@ -409,7 +607,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				} else if resp.StatusCode == 404 {
 					suggestion = "The resource was not found. Check if the resource ID or path is correct."
 				} else if resp.StatusCode == 400 {
-					suggestion = "Bad request. Check if all required parameters are provided and valid."
+					suggestion = generateAI400ErrorResponse(opCopy, inputSchemaJSON, args, string(respBody))
 				}
 				// For binary error responses, include base64 and mime type
 				if isBinary {
