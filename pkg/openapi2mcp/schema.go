@@ -4,9 +4,56 @@ package openapi2mcp
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
+
+// escapeParameterName converts parameter names with brackets to MCP-compatible names.
+// For example: "filter[created_at]" becomes "filter_created_at_"
+// The trailing underscore distinguishes escaped names from naturally occurring names.
+func escapeParameterName(name string) string {
+	if !strings.Contains(name, "[") && !strings.Contains(name, "]") {
+		return name // No escaping needed
+	}
+
+	// Replace brackets with underscores and add trailing underscore
+	escaped := strings.ReplaceAll(name, "[", "_")
+	escaped = strings.ReplaceAll(escaped, "]", "_")
+
+	// Add trailing underscore if not already present to mark as escaped
+	if !strings.HasSuffix(escaped, "_") {
+		escaped += "_"
+	}
+
+	return escaped
+}
+
+// unescapeParameterName converts escaped parameter names back to their original form.
+// This maintains a mapping from escaped names to original names for parameter lookup.
+func unescapeParameterName(escaped string, originalNames map[string]string) string {
+	if original, exists := originalNames[escaped]; exists {
+		return original
+	}
+	return escaped // Return as-is if not found in mapping
+}
+
+// buildParameterNameMapping creates a mapping from escaped parameter names to original names.
+// This is used to reverse the escaping when looking up parameter values.
+func buildParameterNameMapping(params openapi3.Parameters) map[string]string {
+	mapping := make(map[string]string)
+	for _, paramRef := range params {
+		if paramRef == nil || paramRef.Value == nil {
+			continue
+		}
+		p := paramRef.Value
+		escaped := escapeParameterName(p.Name)
+		if escaped != p.Name {
+			mapping[escaped] = p.Name
+		}
+	}
+	return mapping
+}
 
 // extractProperty recursively extracts a property schema from an OpenAPI SchemaRef.
 // Handles allOf, oneOf, anyOf, discriminator, default, example, and basic OpenAPI 3.1 features.
@@ -119,9 +166,11 @@ func BuildInputSchema(params openapi3.Parameters, requestBody *openapi3.RequestB
 			if p.Description != "" {
 				prop["description"] = p.Description
 			}
-			properties[p.Name] = prop
+			// Use escaped parameter name for MCP schema compatibility
+			escapedName := escapeParameterName(p.Name)
+			properties[escapedName] = prop
 			if p.Required {
-				required = append(required, p.Name)
+				required = append(required, escapedName)
 			}
 		}
 		// Warn about unsupported parameter locations

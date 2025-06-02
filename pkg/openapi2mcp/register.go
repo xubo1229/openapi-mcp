@@ -20,6 +20,20 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
+// getParameterValue retrieves a parameter value from args using the escaped parameter name.
+// It tries the escaped name first, then falls back to the original name if not found.
+func getParameterValue(args map[string]any, paramName string, paramNameMapping map[string]string) (any, bool) {
+	escapedName := escapeParameterName(paramName)
+	if val, ok := args[escapedName]; ok {
+		return val, true
+	}
+	// Fallback to original name for backward compatibility
+	if val, ok := args[paramName]; ok {
+		return val, true
+	}
+	return nil, false
+}
+
 // generateAI400ErrorResponse creates a comprehensive, AI-optimized error response for 400 HTTP errors
 // that helps agents understand how to correctly use the tool.
 func generateAI400ErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, args map[string]any, responseBody string) string {
@@ -542,6 +556,9 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				args = map[string]any{}
 			}
 
+			// Build parameter name mapping for escaped parameter names
+			paramNameMapping := buildParameterNameMapping(opCopy.Parameters)
+
 			// Validate arguments against inputSchema
 			inputSchemaJSON := toolSchemas[name]
 			argsJSON, _ := json.Marshal(args)
@@ -671,7 +688,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				}
 				p := paramRef.Value
 				if p.In == "path" {
-					if val, ok := args[p.Name]; ok {
+					if val, ok := getParameterValue(args, p.Name, paramNameMapping); ok {
 						path = strings.ReplaceAll(path, "{"+p.Name+"}", fmt.Sprintf("%v", val))
 					}
 				}
@@ -684,7 +701,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				}
 				p := paramRef.Value
 				if p.In == "query" {
-					if val, ok := args[p.Name]; ok {
+					if val, ok := getParameterValue(args, p.Name, paramNameMapping); ok {
 						query.Set(p.Name, fmt.Sprintf("%v", val))
 					}
 				}
@@ -788,7 +805,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				}
 				p := paramRef.Value
 				if p.In == "header" {
-					if val, ok := args[p.Name]; ok {
+					if val, ok := getParameterValue(args, p.Name, paramNameMapping); ok {
 						httpReq.Header.Set(p.Name, fmt.Sprintf("%v", val))
 					}
 				}
@@ -801,7 +818,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				}
 				p := paramRef.Value
 				if p.In == "cookie" {
-					if val, ok := args[p.Name]; ok {
+					if val, ok := getParameterValue(args, p.Name, paramNameMapping); ok {
 						cookiePairs = append(cookiePairs, fmt.Sprintf("%s=%v", p.Name, val))
 					}
 				}

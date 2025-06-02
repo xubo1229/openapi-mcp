@@ -396,3 +396,180 @@ paths:
 		t.Error("Expected to find parameter warnings")
 	}
 }
+
+func TestEscapeParameterName(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"normal_param", "normal_param"},
+		{"filter[created_at]", "filter_created_at_"},
+		{"page[number]", "page_number_"},
+		{"filter[user][name]", "filter_user__name_"},
+		{"already_escaped_", "already_escaped_"},
+		{"param[with][multiple][brackets]", "param_with__multiple__brackets_"},
+		{"", ""},
+	}
+
+	for _, test := range tests {
+		result := escapeParameterName(test.input)
+		if result != test.expected {
+			t.Errorf("escapeParameterName(%q) = %q, expected %q", test.input, result, test.expected)
+		}
+	}
+}
+
+func TestBracketParameterHandling(t *testing.T) {
+	// Create a spec with bracket parameters like filter[created_at]
+	paths := openapi3.NewPaths()
+
+	responses := openapi3.NewResponses()
+	responses.Set("200", &openapi3.ResponseRef{
+		Value: &openapi3.Response{Description: stringPtr("OK")},
+	})
+
+	paths.Set("/events", &openapi3.PathItem{
+		Get: &openapi3.Operation{
+			OperationID: "listEvents",
+			Summary:     "List Events",
+			Parameters: openapi3.Parameters{
+				&openapi3.ParameterRef{
+					Value: &openapi3.Parameter{
+						Name:        "filter[created_at]",
+						In:          "query",
+						Required:    false,
+						Description: "Filter by creation date",
+						Schema: &openapi3.SchemaRef{
+							Value: &openapi3.Schema{Type: typesPtr("string")},
+						},
+					},
+				},
+				&openapi3.ParameterRef{
+					Value: &openapi3.Parameter{
+						Name:        "page[number]",
+						In:          "query",
+						Required:    false,
+						Description: "Page number",
+						Schema: &openapi3.SchemaRef{
+							Value: &openapi3.Schema{Type: typesPtr("integer")},
+						},
+					},
+				},
+			},
+			Responses: responses,
+		},
+	})
+
+	doc := &openapi3.T{
+		Info:  &openapi3.Info{Title: "Bracket Test API", Version: "1.0.0"},
+		Paths: paths,
+	}
+
+	ops := ExtractOpenAPIOperations(doc)
+	if len(ops) == 0 {
+		t.Fatal("No operations extracted")
+	}
+
+	op := ops[0]
+	if op.OperationID != "listEvents" {
+		t.Fatalf("Expected operation ID 'listEvents', got '%s'", op.OperationID)
+	}
+
+	// Build the input schema and verify bracket parameters are escaped
+	inputSchema := BuildInputSchema(op.Parameters, op.RequestBody)
+
+	// The schema should be valid and not cause any errors when processed
+	if inputSchema == nil {
+		t.Fatal("Input schema is nil")
+	}
+
+	// Verify that the schema contains the escaped parameter names
+	props, ok := inputSchema["properties"].(map[string]any)
+	if !ok {
+		t.Fatal("Schema properties not found")
+	}
+
+	// Check that bracket parameters are properly escaped
+	if _, ok := props["filter_created_at_"]; !ok {
+		t.Error("Expected escaped parameter 'filter_created_at_' not found in schema")
+	}
+
+	if _, ok := props["page_number_"]; !ok {
+		t.Error("Expected escaped parameter 'page_number_' not found in schema")
+	}
+
+	// Verify original bracket names are NOT in the schema
+	if _, ok := props["filter[created_at]"]; ok {
+		t.Error("Original bracket parameter 'filter[created_at]' should not be in schema")
+	}
+
+	if _, ok := props["page[number]"]; ok {
+		t.Error("Original bracket parameter 'page[number]' should not be in schema")
+	}
+}
+
+func TestParameterNameMapping(t *testing.T) {
+	// Create parameters with brackets
+	params := openapi3.Parameters{
+		&openapi3.ParameterRef{
+			Value: &openapi3.Parameter{
+				Name: "filter[created_at]",
+				In:   "query",
+				Schema: &openapi3.SchemaRef{
+					Value: &openapi3.Schema{Type: typesPtr("string")},
+				},
+			},
+		},
+		&openapi3.ParameterRef{
+			Value: &openapi3.Parameter{
+				Name: "normal_param",
+				In:   "query",
+				Schema: &openapi3.SchemaRef{
+					Value: &openapi3.Schema{Type: typesPtr("string")},
+				},
+			},
+		},
+	}
+
+	mapping := buildParameterNameMapping(params)
+
+	// Should contain mapping for bracket parameter
+	if original, exists := mapping["filter_created_at_"]; !exists || original != "filter[created_at]" {
+		t.Errorf("Expected mapping 'filter_created_at_' -> 'filter[created_at]', got: %v", mapping)
+	}
+
+	// Should NOT contain mapping for normal parameter
+	if _, exists := mapping["normal_param"]; exists {
+		t.Error("Normal parameter should not be in mapping")
+	}
+}
+
+func TestGetParameterValue(t *testing.T) {
+	mapping := map[string]string{
+		"filter_created_at_": "filter[created_at]",
+	}
+
+	// Test with escaped parameter name in args
+	args := map[string]any{
+		"filter_created_at_": "2024-01-01",
+		"normal_param":       "value",
+	}
+
+	// Should find value using escaped name
+	val, ok := getParameterValue(args, "filter[created_at]", mapping)
+	if !ok || val != "2024-01-01" {
+		t.Errorf("Expected to find value '2024-01-01', got: %v (found: %v)", val, ok)
+	}
+
+	// Should find normal parameter
+	val, ok = getParameterValue(args, "normal_param", mapping)
+	if !ok || val != "value" {
+		t.Errorf("Expected to find value 'value', got: %v (found: %v)", val, ok)
+	}
+
+	// Should not find non-existent parameter
+	val, ok = getParameterValue(args, "non_existent", mapping)
+	if ok {
+		t.Errorf("Expected to not find non-existent parameter, but found: %v", val)
+	}
+}
