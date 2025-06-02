@@ -11,6 +11,55 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// generateAIUsageError creates comprehensive, AI-optimized error responses for CLI usage errors
+func generateAIUsageError(context, issue string) {
+	fmt.Fprintln(os.Stderr, "OPENAPI-MCP USAGE ERROR")
+	fmt.Fprintln(os.Stderr, "======================")
+	fmt.Fprintf(os.Stderr, "\nCONTEXT: %s\n", context)
+	fmt.Fprintf(os.Stderr, "ISSUE: %s\n\n", issue)
+
+	fmt.Fprintln(os.Stderr, "COMMON USAGE PATTERNS:")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "1. Start MCP server with stdio (default):")
+	fmt.Fprintln(os.Stderr, "   openapi-mcp <openapi-spec.yaml>")
+	fmt.Fprintln(os.Stderr, "   Example: openapi-mcp petstore.yaml")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "2. Start MCP server with HTTP:")
+	fmt.Fprintln(os.Stderr, "   openapi-mcp --http=:8080 <openapi-spec.yaml>")
+	fmt.Fprintln(os.Stderr, "   Example: openapi-mcp --http=:8080 petstore.yaml")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "3. Validate OpenAPI specification:")
+	fmt.Fprintln(os.Stderr, "   openapi-mcp validate <openapi-spec.yaml>")
+	fmt.Fprintln(os.Stderr, "   Example: openapi-mcp validate petstore.yaml")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "4. Lint OpenAPI specification:")
+	fmt.Fprintln(os.Stderr, "   openapi-mcp lint <openapi-spec.yaml>")
+	fmt.Fprintln(os.Stderr, "   Example: openapi-mcp lint petstore.yaml")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "5. Filter operations and output modified spec:")
+	fmt.Fprintln(os.Stderr, "   openapi-mcp filter <openapi-spec.yaml>")
+	fmt.Fprintln(os.Stderr, "   Example: openapi-mcp --tag=pets filter petstore.yaml")
+	fmt.Fprintln(os.Stderr, "")
+
+	if strings.Contains(issue, "missing") && strings.Contains(issue, "argument") {
+		fmt.Fprintln(os.Stderr, "TROUBLESHOOTING:")
+		fmt.Fprintln(os.Stderr, "• Make sure you provide the path to your OpenAPI specification file")
+		fmt.Fprintln(os.Stderr, "• The file should be in YAML (.yaml, .yml) or JSON (.json) format")
+		fmt.Fprintln(os.Stderr, "• Check that the file exists: ls -la <your-spec-file>")
+		fmt.Fprintln(os.Stderr, "• Use absolute paths if relative paths don't work")
+		fmt.Fprintln(os.Stderr, "")
+	}
+
+	fmt.Fprintln(os.Stderr, "ADVANCED OPTIONS:")
+	fmt.Fprintln(os.Stderr, "• --dry-run: Preview tools without starting server")
+	fmt.Fprintln(os.Stderr, "• --tag=<tag>: Filter operations by OpenAPI tag")
+	fmt.Fprintln(os.Stderr, "• --summary: Show brief summary of generated tools")
+	fmt.Fprintln(os.Stderr, "• --doc=<file>: Generate documentation")
+	fmt.Fprintln(os.Stderr, "• --mount: Mount multiple specs at different paths")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "For more help: openapi-mcp --help")
+}
+
 // main is the entrypoint for the openapi-mcp CLI.
 // It parses flags, loads the OpenAPI spec, and dispatches to the appropriate mode (server, doc, dry-run, etc).
 func main() {
@@ -36,8 +85,7 @@ func main() {
 	}
 
 	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument.")
-		printHelp()
+		generateAIUsageError("Starting openapi-mcp server", "missing required <openapi-spec-path> argument")
 		os.Exit(1)
 	}
 
@@ -68,7 +116,7 @@ func main() {
 		}
 
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument for validate.")
+			generateAIUsageError("Running validation", "missing required <openapi-spec-path> argument for validate command")
 			os.Exit(1)
 		}
 		specPath := args[1]
@@ -109,7 +157,7 @@ func main() {
 		}
 
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument for lint.")
+			generateAIUsageError("Running linting", "missing required <openapi-spec-path> argument for lint command")
 			os.Exit(1)
 		}
 		specPath := args[1]
@@ -138,7 +186,7 @@ func main() {
 	// --- Filter subcommand ---
 	if args[0] == "filter" {
 		if len(args) < 2 {
-			fmt.Fprintln(os.Stderr, "Error: missing required <openapi-spec-path> argument for filter.")
+			generateAIUsageError("Running filter", "missing required <openapi-spec-path> argument for filter command")
 			os.Exit(1)
 		}
 		specPath := args[1]
