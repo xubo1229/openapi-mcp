@@ -34,6 +34,7 @@ type cliFlags struct {
 	args               []string
 	mounts             mountFlags // slice of mountFlag
 	functionListFile   string     // Path to file listing functions to include (for filter command)
+	logFile            string     // Path to file for logging MCP requests and responses
 }
 
 type mountFlag struct {
@@ -88,6 +89,7 @@ func parseFlags() *cliFlags {
 	flag.BoolVar(&flags.noConfirmDangerous, "no-confirm-dangerous", false, "Disable confirmation prompt for dangerous (PUT/POST/DELETE) actions in tool descriptions")
 	flag.Var(&flags.mounts, "mount", "Mount an OpenAPI spec at a base path: /base:path/to/spec.yaml (repeatable, can be used multiple times)")
 	flag.StringVar(&flags.functionListFile, "function-list-file", "", "File with list of function (operationId) names to include (one per line, for filter command)")
+	flag.StringVar(&flags.logFile, "log-file", "", "File path to log all MCP requests and responses for debugging")
 	flag.Parse()
 	flags.args = flag.Args()
 	if flags.extended {
@@ -194,6 +196,7 @@ Flags:
   --diff               Compare generated tools with a reference file
   --mount /base:path/to/spec.yaml  Mount an OpenAPI spec at a base path (repeatable, can be used multiple times)
   --function-list-file   File with list of function (operationId) names to include (one per line, for filter command)
+  --log-file           File path to log all MCP requests and responses for debugging
   --help, -h           Show help
 
 By default, output is minimal and agent-friendly. Use --extended for banners, help, and human-readable output.
