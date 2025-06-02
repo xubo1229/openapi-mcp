@@ -276,9 +276,6 @@ func generateAIFriendlyDescription(op OpenAPIOperation, inputSchema map[string]a
 		desc.WriteString(op.Summary)
 	}
 
-	// Add HTTP method and path info
-	desc.WriteString(fmt.Sprintf("\n\nHTTP: %s %s", strings.ToUpper(op.Method), op.Path))
-
 	// Add authentication requirements if any
 	if len(op.Security) > 0 {
 		desc.WriteString("\n\nAUTHENTICATION: ")
