@@ -180,6 +180,158 @@ func generateAI400ErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, arg
 	return response.String()
 }
 
+// generateAIFriendlyDescription creates a comprehensive, AI-optimized description for an operation
+// that includes all the information an AI agent needs to understand how to use the tool.
+func generateAIFriendlyDescription(op OpenAPIOperation, inputSchema map[string]any, apiKeyHeader string) string {
+	var desc strings.Builder
+
+	// Start with the original description or summary
+	if op.Description != "" {
+		desc.WriteString(op.Description)
+	} else if op.Summary != "" {
+		desc.WriteString(op.Summary)
+	}
+
+	// Add HTTP method and path info
+	desc.WriteString(fmt.Sprintf("\n\nHTTP: %s %s", strings.ToUpper(op.Method), op.Path))
+
+	// Add authentication requirements if any
+	if len(op.Security) > 0 {
+		desc.WriteString("\n\nAUTHENTICATION: ")
+		var authMethods []string
+		for _, secReq := range op.Security {
+			for schemeName := range secReq {
+				authMethods = append(authMethods, schemeName)
+			}
+		}
+		desc.WriteString("Required (" + strings.Join(authMethods, " OR ") + "). ")
+		desc.WriteString("Set environment variables: API_KEY, BEARER_TOKEN, or BASIC_AUTH")
+	}
+
+	// Extract required parameters first
+	var requiredParams []string
+	switch req := inputSchema["required"].(type) {
+	case []any:
+		for _, r := range req {
+			if str, ok := r.(string); ok {
+				requiredParams = append(requiredParams, str)
+			}
+		}
+	case []string:
+		requiredParams = req
+	}
+
+	// Add parameter information with examples
+	if properties, ok := inputSchema["properties"].(map[string]any); ok && len(properties) > 0 {
+		desc.WriteString("\n\nPARAMETERS:")
+
+		if len(requiredParams) > 0 {
+			desc.WriteString("\n• Required:")
+			for _, reqStr := range requiredParams {
+				if prop, ok := properties[reqStr].(map[string]any); ok {
+					desc.WriteString(fmt.Sprintf("\n  - %s", reqStr))
+					if typeStr, ok := prop["type"].(string); ok {
+						desc.WriteString(fmt.Sprintf(" (%s)", typeStr))
+					}
+					if propDesc, ok := prop["description"].(string); ok && propDesc != "" {
+						desc.WriteString(": " + propDesc)
+					}
+					// Add enum values if present
+					if enum, ok := prop["enum"].([]any); ok && len(enum) > 0 {
+						var enumStrs []string
+						for _, e := range enum {
+							enumStrs = append(enumStrs, fmt.Sprintf("%v", e))
+						}
+						desc.WriteString(" [values: " + strings.Join(enumStrs, ", ") + "]")
+					}
+				}
+			}
+		}
+
+		// Optional parameters
+		var optionalParams []string
+		for paramName, paramDef := range properties {
+			isRequired := false
+			for _, reqParam := range requiredParams {
+				if reqParam == paramName {
+					isRequired = true
+					break
+				}
+			}
+			if !isRequired {
+				if prop, ok := paramDef.(map[string]any); ok {
+					paramInfo := fmt.Sprintf("  - %s", paramName)
+					if typeStr, ok := prop["type"].(string); ok {
+						paramInfo += fmt.Sprintf(" (%s)", typeStr)
+					}
+					if propDesc, ok := prop["description"].(string); ok && propDesc != "" {
+						paramInfo += ": " + propDesc
+					}
+					if enum, ok := prop["enum"].([]any); ok && len(enum) > 0 {
+						var enumStrs []string
+						for _, e := range enum {
+							enumStrs = append(enumStrs, fmt.Sprintf("%v", e))
+						}
+						paramInfo += " [values: " + strings.Join(enumStrs, ", ") + "]"
+					}
+					optionalParams = append(optionalParams, paramInfo)
+				}
+			}
+		}
+		if len(optionalParams) > 0 {
+			desc.WriteString("\n• Optional:")
+			for _, param := range optionalParams {
+				desc.WriteString("\n" + param)
+			}
+		}
+	}
+
+	// Add example usage
+	desc.WriteString("\n\nEXAMPLE: call " + op.OperationID + " ")
+	exampleArgs := make(map[string]any)
+
+	// Generate example based on actual parameters
+	if properties, ok := inputSchema["properties"].(map[string]any); ok {
+		// Add required parameters to example
+		for _, reqStr := range requiredParams {
+			if prop, ok := properties[reqStr].(map[string]any); ok {
+				exampleArgs[reqStr] = generateExampleValue(prop)
+			}
+		}
+		// Add one or two optional parameters to show structure
+		count := 0
+		for paramName, paramDef := range properties {
+			if _, exists := exampleArgs[paramName]; !exists && count < 2 {
+				if prop, ok := paramDef.(map[string]any); ok {
+					// Skip adding optional params if there are already many required ones
+					if len(exampleArgs) < 3 {
+						exampleArgs[paramName] = generateExampleValue(prop)
+						count++
+					}
+				}
+			}
+		}
+	}
+
+	exampleJSON, _ := json.Marshal(exampleArgs)
+	desc.WriteString(string(exampleJSON))
+
+	// Add response format info
+	if op.Method == "get" || op.Method == "post" || op.Method == "put" {
+		desc.WriteString("\n\nRESPONSE: Returns HTTP status, headers, and response body. ")
+		desc.WriteString("Success responses (2xx) return the data. ")
+		desc.WriteString("Error responses include troubleshooting guidance.")
+	}
+
+	// Add safety note for dangerous operations
+	if op.Method == "delete" || op.Method == "put" || op.Method == "post" {
+		desc.WriteString("\n\n⚠️  SAFETY: This operation modifies data. ")
+		desc.WriteString("You will be asked to confirm before execution.")
+	}
+
+	return desc.String()
+}
+
 // generateExampleValue creates appropriate example values based on the parameter schema
 func generateExampleValue(prop map[string]any) any {
 	typeStr, _ := prop["type"].(string)
@@ -516,10 +668,8 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			inputSchema = opts.PostProcessSchema(op.OperationID, inputSchema)
 		}
 		inputSchemaJSON, _ := json.MarshalIndent(inputSchema, "", "  ")
-		desc := op.Description
-		if desc == "" {
-			desc = op.Summary
-		}
+		// Generate AI-friendly description
+		desc := generateAIFriendlyDescription(op, inputSchema, apiKeyHeader)
 		name := op.OperationID
 		if opts != nil && opts.NameFormat != nil {
 			name = opts.NameFormat(name)
