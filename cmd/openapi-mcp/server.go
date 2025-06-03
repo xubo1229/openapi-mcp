@@ -148,32 +148,47 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 	switch logType {
 	case "request":
 		log.WriteString("📤 INCOMING REQUEST\n")
-		if req, ok := data.(map[string]interface{}); ok {
-			if method == "tools/call" {
-				// Special formatting for tool calls
-				if params, ok := req["params"].(map[string]interface{}); ok {
-					if name, ok := params["name"].(string); ok {
-						log.WriteString(fmt.Sprintf("🔧 Tool: %s\n", name))
-					}
-					if args, ok := params["arguments"].(map[string]interface{}); ok && len(args) > 0 {
-						log.WriteString("📝 Arguments:\n")
-						for key, value := range args {
-							valueStr := formatValue(value)
-							log.WriteString(fmt.Sprintf("   %s: %s\n", key, valueStr))
-						}
-					} else {
-						log.WriteString("📝 Arguments: (none)\n")
-					}
+
+		// Handle typed MCP request objects
+		switch req := data.(type) {
+		case *mcp.CallToolRequest:
+			// Handle CallToolRequest directly
+			log.WriteString(fmt.Sprintf("🔧 Tool: %s\n", req.Params.Name))
+			args := req.GetArguments()
+			if len(args) > 0 {
+				log.WriteString("📝 Arguments:\n")
+				for key, value := range args {
+					valueStr := formatValue(value)
+					log.WriteString(fmt.Sprintf("   %s: %s\n", key, valueStr))
 				}
 			} else {
-				// Other method types - show only if there are meaningful params
-				if params, ok := req["params"].(map[string]interface{}); ok && len(params) > 0 {
-					prettyJSON, _ := json.MarshalIndent(params, "   ", "  ")
-					log.WriteString(fmt.Sprintf("📝 Parameters:\n   %s\n", string(prettyJSON)))
-				} else {
-					// For methods with no parameters, just note what method it is
-					log.WriteString(fmt.Sprintf("📝 Method: %s (no parameters)\n", method))
-				}
+				log.WriteString("📝 Arguments: (none)\n")
+			}
+
+		case *mcp.ListToolsRequest:
+			// ListToolsRequest typically has pagination params
+			log.WriteString("📝 Method: tools/list\n")
+			if req.Params.Cursor != "" {
+				log.WriteString(fmt.Sprintf("   Cursor: %s\n", req.Params.Cursor))
+			}
+
+		case *mcp.InitializeRequest:
+			log.WriteString("📝 Method: initialize\n")
+			log.WriteString(fmt.Sprintf("   Protocol Version: %s\n", req.Params.ProtocolVersion))
+			if req.Params.ClientInfo.Name != "" {
+				log.WriteString(fmt.Sprintf("   Client: %s/%s\n", req.Params.ClientInfo.Name, req.Params.ClientInfo.Version))
+			}
+
+		case *mcp.PingRequest:
+			log.WriteString("📝 Method: ping\n")
+
+		default:
+			// For other request types or if we can't determine the type,
+			// try to marshal to JSON and display
+			if jsonData, err := json.MarshalIndent(data, "   ", "  "); err == nil {
+				log.WriteString(fmt.Sprintf("📝 Request:\n   %s\n", string(jsonData)))
+			} else {
+				log.WriteString(fmt.Sprintf("📝 Request type: %T\n", data))
 			}
 		}
 
