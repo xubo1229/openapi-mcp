@@ -689,6 +689,64 @@ func generateAI5xxErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, arg
 	response.WriteString("• Maximum 3-5 retry attempts\n")
 	response.WriteString("• Report persistent errors to the API provider\n")
 
+	// Add tool usage information for AI agents
+	var schemaObj map[string]any
+	_ = json.Unmarshal(inputSchemaJSON, &schemaObj)
+	
+	if properties, ok := schemaObj["properties"].(map[string]any); ok && len(properties) > 0 {
+		response.WriteString("\nTOOL USAGE INFORMATION:\n")
+		response.WriteString(fmt.Sprintf("Tool Name: %s\n", op.OperationID))
+		
+		// Show required parameters
+		if required, ok := schemaObj["required"].([]any); ok && len(required) > 0 {
+			response.WriteString("Required Parameters (mandatory for all calls):\n")
+			for _, req := range required {
+				if reqStr, ok := req.(string); ok {
+					if prop, ok := properties[reqStr].(map[string]any); ok {
+						response.WriteString(fmt.Sprintf("  - %s", reqStr))
+						if typeStr, ok := prop["type"].(string); ok {
+							response.WriteString(fmt.Sprintf(" (%s)", typeStr))
+						}
+						if desc, ok := prop["description"].(string); ok && desc != "" {
+							response.WriteString(fmt.Sprintf(": %s", desc))
+						}
+						response.WriteString(" [MANDATORY]")
+						response.WriteString("\n")
+					}
+				}
+			}
+		}
+		
+		// Generate example usage with correct parameters
+		response.WriteString("\nExample Usage (retry with these correct parameters):\n")
+		exampleArgs := map[string]any{}
+		
+		// Add required parameters to example
+		if required, ok := schemaObj["required"].([]any); ok {
+			for _, req := range required {
+				if reqStr, ok := req.(string); ok {
+					if prop, ok := properties[reqStr].(map[string]any); ok {
+						exampleArgs[reqStr] = generateExampleValue(prop)
+					}
+				}
+			}
+		}
+		
+		// Add a few optional parameters for completeness
+		count := 0
+		for paramName, paramDef := range properties {
+			if _, exists := exampleArgs[paramName]; !exists && count < 2 {
+				if prop, ok := paramDef.(map[string]any); ok {
+					exampleArgs[paramName] = generateExampleValue(prop)
+					count++
+				}
+			}
+		}
+		
+		exampleJSON, _ := json.MarshalIndent(exampleArgs, "", "  ")
+		response.WriteString(fmt.Sprintf("call %s %s\n", op.OperationID, string(exampleJSON)))
+	}
+
 	return response.String()
 }
 

@@ -48,7 +48,7 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 				os.Exit(1)
 			}
 			ops = openapi2mcp.ExtractOpenAPIOperations(d)
-			srv, logFileHandle := createServerWithOptions("openapi-mcp", d.Info.Version, d, ops, flags.logFile)
+			srv, logFileHandle := createServerWithOptions("openapi-mcp", d.Info.Version, d, ops, flags.logFile, flags.noLogTruncation)
 			if logFileHandle != nil {
 				defer logFileHandle.Close()
 			}
@@ -82,7 +82,7 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 			os.Exit(1)
 		}
 		ops := openapi2mcp.ExtractOpenAPIOperations(d)
-		srv, logFileHandle := createServerWithOptions("openapi-mcp", d.Info.Version, d, ops, flags.logFile)
+		srv, logFileHandle := createServerWithOptions("openapi-mcp", d.Info.Version, d, ops, flags.logFile, flags.noLogTruncation)
 		if logFileHandle != nil {
 			defer logFileHandle.Close()
 		}
@@ -113,7 +113,7 @@ func startServer(flags *cliFlags, ops []openapi2mcp.OpenAPIOperation, doc *opena
 		os.Exit(1)
 	}
 	ops = openapi2mcp.ExtractOpenAPIOperations(d)
-	srv, logFileHandle := createServerWithOptions("openapi-mcp", d.Info.Version, d, ops, flags.logFile)
+	srv, logFileHandle := createServerWithOptions("openapi-mcp", d.Info.Version, d, ops, flags.logFile, flags.noLogTruncation)
 	if logFileHandle != nil {
 		defer logFileHandle.Close()
 	}
@@ -131,7 +131,7 @@ func makeMCPHandler(srv *mcpserver.MCPServer, basePath string) http.Handler {
 }
 
 // formatHumanReadableLog creates a human-readable log entry for MCP transactions
-func formatHumanReadableLog(timestamp, logType, method string, id any, data interface{}, err error) string {
+func formatHumanReadableLog(timestamp, logType, method string, id any, data interface{}, err error, noTruncation bool) string {
 	var log strings.Builder
 
 	// Header with timestamp and type
@@ -158,7 +158,7 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 			if len(args) > 0 {
 				log.WriteString("📝 Arguments:\n")
 				for key, value := range args {
-					valueStr := formatValue(value)
+					valueStr := formatValue(value, noTruncation)
 					log.WriteString(fmt.Sprintf("   %s: %s\n", key, valueStr))
 				}
 			} else {
@@ -206,8 +206,8 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 		case *mcp.ListToolsResult:
 			tools := result.Tools
 			log.WriteString(fmt.Sprintf("🔧 Tools Listed: %d tools\n", len(tools)))
-			if len(tools) <= 10 {
-				// Show all tools if 10 or fewer
+			if noTruncation || len(tools) <= 10 {
+				// Show all tools if no truncation or 10 or fewer
 				for i, tool := range tools {
 					desc := ""
 					if len(tool.Description) > 0 {
@@ -215,7 +215,7 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 						lines := strings.Split(tool.Description, "\n")
 						if len(lines) > 0 {
 							desc = lines[0]
-							if len(desc) > 80 {
+							if !noTruncation && len(desc) > 80 {
 								desc = desc[:80] + "..."
 							}
 						}
@@ -230,7 +230,7 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 						lines := strings.Split(tools[i].Description, "\n")
 						if len(lines) > 0 {
 							desc = lines[0]
-							if len(desc) > 80 {
+							if !noTruncation && len(desc) > 80 {
 								desc = desc[:80] + "..."
 							}
 						}
@@ -246,7 +246,7 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 					if textContent, ok := item.(mcp.TextContent); ok {
 						log.WriteString(fmt.Sprintf("   [%d] Type: %s\n", i+1, textContent.Type))
 						// Truncate very long responses
-						if len(textContent.Text) > 500 {
+						if !noTruncation && len(textContent.Text) > 500 {
 							log.WriteString(fmt.Sprintf("   [%d] Text: %s... (%d chars total)\n",
 								i+1, textContent.Text[:500], len(textContent.Text)))
 						} else {
@@ -267,7 +267,7 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 							}
 							if text, ok := contentItem["text"].(string); ok {
 								// Truncate very long responses
-								if len(text) > 500 {
+								if !noTruncation && len(text) > 500 {
 									log.WriteString(fmt.Sprintf("   [%d] Text: %s... (%d chars total)\n",
 										i+1, text[:500], len(text)))
 								} else {
@@ -279,8 +279,8 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 				}
 			} else if tools, ok := result["tools"].([]interface{}); ok {
 				log.WriteString(fmt.Sprintf("🔧 Tools Listed: %d tools\n", len(tools)))
-				if len(tools) <= 10 {
-					// Show all tools if 10 or fewer
+				if noTruncation || len(tools) <= 10 {
+					// Show all tools if no truncation or 10 or fewer
 					for i, tool := range tools {
 						if toolItem, ok := tool.(map[string]interface{}); ok {
 							if name, ok := toolItem["name"].(string); ok {
@@ -345,10 +345,10 @@ func formatHumanReadableLog(timestamp, logType, method string, id any, data inte
 }
 
 // formatValue formats a value for human-readable display
-func formatValue(value interface{}) string {
+func formatValue(value interface{}, noTruncation bool) string {
 	switch v := value.(type) {
 	case string:
-		if len(v) > 100 {
+		if !noTruncation && len(v) > 100 {
 			return fmt.Sprintf("\"%s...\" (%d chars)", v[:100], len(v))
 		}
 		return fmt.Sprintf("\"%s\"", v)
@@ -360,7 +360,7 @@ func formatValue(value interface{}) string {
 		for k := range v {
 			keys = append(keys, k)
 		}
-		if len(keys) > 3 {
+		if !noTruncation && len(keys) > 3 {
 			return fmt.Sprintf("{%s, ...} (%d keys)", strings.Join(keys[:3], ", "), len(keys))
 		}
 		return fmt.Sprintf("{%s}", strings.Join(keys, ", "))
@@ -372,7 +372,7 @@ func formatValue(value interface{}) string {
 }
 
 // createLoggingHooks creates MCP hooks for logging requests and responses to a file
-func createLoggingHooks(logFilePath string) (*mcpserver.Hooks, *os.File, error) {
+func createLoggingHooks(logFilePath string, noLogTruncation bool) (*mcpserver.Hooks, *os.File, error) {
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open log file: %w", err)
@@ -385,21 +385,21 @@ func createLoggingHooks(logFilePath string) (*mcpserver.Hooks, *os.File, error) 
 	// Log requests with human-readable format
 	hooks.AddBeforeAny(func(ctx context.Context, id any, method mcp.MCPMethod, message any) {
 		timestamp := time.Now().Format("2006-01-02 15:04:05 MST")
-		humanLog := formatHumanReadableLog(timestamp, "request", string(method), id, message, nil)
+		humanLog := formatHumanReadableLog(timestamp, "request", string(method), id, message, nil, noLogTruncation)
 		logger.Print(humanLog)
 	})
 
 	// Log successful responses with human-readable format
 	hooks.AddOnSuccess(func(ctx context.Context, id any, method mcp.MCPMethod, message any, result any) {
 		timestamp := time.Now().Format("2006-01-02 15:04:05 MST")
-		humanLog := formatHumanReadableLog(timestamp, "response", string(method), id, result, nil)
+		humanLog := formatHumanReadableLog(timestamp, "response", string(method), id, result, nil, noLogTruncation)
 		logger.Print(humanLog)
 	})
 
 	// Log errors with human-readable format
 	hooks.AddOnError(func(ctx context.Context, id any, method mcp.MCPMethod, message any, err error) {
 		timestamp := time.Now().Format("2006-01-02 15:04:05 MST")
-		humanLog := formatHumanReadableLog(timestamp, "error", string(method), id, message, err)
+		humanLog := formatHumanReadableLog(timestamp, "error", string(method), id, message, err, noLogTruncation)
 		logger.Print(humanLog)
 	})
 
@@ -407,12 +407,12 @@ func createLoggingHooks(logFilePath string) (*mcpserver.Hooks, *os.File, error) 
 }
 
 // createServerWithOptions creates a new MCP server with the given operations and optional logging
-func createServerWithOptions(name, version string, doc *openapi3.T, ops []openapi2mcp.OpenAPIOperation, logFile string) (*mcpserver.MCPServer, *os.File) {
+func createServerWithOptions(name, version string, doc *openapi3.T, ops []openapi2mcp.OpenAPIOperation, logFile string, noLogTruncation bool) (*mcpserver.MCPServer, *os.File) {
 	var opts []mcpserver.ServerOption
 	var logFileHandle *os.File
 
 	if logFile != "" {
-		hooks, fileHandle, err := createLoggingHooks(logFile)
+		hooks, fileHandle, err := createLoggingHooks(logFile, noLogTruncation)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create logging hooks: %v\n", err)
 			os.Exit(1)

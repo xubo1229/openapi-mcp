@@ -35,6 +35,7 @@ type cliFlags struct {
 	mounts             mountFlags // slice of mountFlag
 	functionListFile   string     // Path to file listing functions to include (for filter command)
 	logFile            string     // Path to file for logging MCP requests and responses
+	noLogTruncation    bool       // Disable truncation in human-readable MCP logs
 }
 
 type mountFlag struct {
@@ -90,6 +91,7 @@ func parseFlags() *cliFlags {
 	flag.Var(&flags.mounts, "mount", "Mount an OpenAPI spec at a base path: /base:path/to/spec.yaml (repeatable, can be used multiple times)")
 	flag.StringVar(&flags.functionListFile, "function-list-file", "", "File with list of function (operationId) names to include (one per line, for filter command)")
 	flag.StringVar(&flags.logFile, "log-file", "", "File path to log all MCP requests and responses for debugging")
+	flag.BoolVar(&flags.noLogTruncation, "no-log-truncation", false, "Disable truncation of long values in human-readable MCP logs")
 	flag.Parse()
 	flags.args = flag.Args()
 	if flags.extended {
@@ -197,6 +199,7 @@ Flags:
   --mount /base:path/to/spec.yaml  Mount an OpenAPI spec at a base path (repeatable, can be used multiple times)
   --function-list-file   File with list of function (operationId) names to include (one per line, for filter command)
   --log-file           File path to log all MCP requests and responses for debugging
+  --no-log-truncation  Disable truncation of long values in human-readable MCP logs
   --help, -h           Show help
 
 By default, output is minimal and agent-friendly. Use --extended for banners, help, and human-readable output.
