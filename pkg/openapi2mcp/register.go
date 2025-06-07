@@ -750,6 +750,97 @@ func generateAI5xxErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, arg
 	return response.String()
 }
 
+// hasDateTimeParameters checks if an operation has any date/time related parameters
+func hasDateTimeParameters(op OpenAPIOperation) bool {
+	// Check regular parameters
+	for _, paramRef := range op.Parameters {
+		if paramRef == nil || paramRef.Value == nil {
+			continue
+		}
+
+		// Check parameter name for date/time indicators
+		paramName := strings.ToLower(paramRef.Value.Name)
+		if strings.Contains(paramName, "date") || strings.Contains(paramName, "time") ||
+			strings.Contains(paramName, "created_at") || strings.Contains(paramName, "updated_at") ||
+			strings.Contains(paramName, "start_time") || strings.Contains(paramName, "end_time") {
+			return true
+		}
+
+		// Check schema format
+		if paramRef.Value.Schema != nil && paramRef.Value.Schema.Value != nil {
+			schema := paramRef.Value.Schema.Value
+			if schema.Format == "date" || schema.Format == "date-time" {
+				return true
+			}
+			// Check for Unix timestamps (integers with certain names)
+			if schema.Type != nil && schema.Type.Is("integer") && (strings.Contains(paramName, "time") || strings.Contains(paramName, "timestamp")) {
+				return true
+			}
+		}
+	}
+
+	// Check request body schema if present
+	if op.RequestBody != nil && op.RequestBody.Value != nil {
+		for _, mediaType := range op.RequestBody.Value.Content {
+			if mediaType.Schema != nil && mediaType.Schema.Value != nil {
+				if hasDateTimeInSchema(mediaType.Schema.Value) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+// hasDateTimeInSchema recursively checks if a schema contains date/time formats
+func hasDateTimeInSchema(schema *openapi3.Schema) bool {
+	if schema.Format == "date" || schema.Format == "date-time" {
+		return true
+	}
+
+	// Check properties in objects
+	for _, propRef := range schema.Properties {
+		if propRef != nil && propRef.Value != nil {
+			if hasDateTimeInSchema(propRef.Value) {
+				return true
+			}
+		}
+	}
+
+	// Check items in arrays
+	if schema.Items != nil && schema.Items.Value != nil {
+		if hasDateTimeInSchema(schema.Items.Value) {
+			return true
+		}
+	}
+
+	// Check allOf, anyOf, oneOf
+	for _, schemaRef := range schema.AllOf {
+		if schemaRef != nil && schemaRef.Value != nil {
+			if hasDateTimeInSchema(schemaRef.Value) {
+				return true
+			}
+		}
+	}
+	for _, schemaRef := range schema.AnyOf {
+		if schemaRef != nil && schemaRef.Value != nil {
+			if hasDateTimeInSchema(schemaRef.Value) {
+				return true
+			}
+		}
+	}
+	for _, schemaRef := range schema.OneOf {
+		if schemaRef != nil && schemaRef.Value != nil {
+			if hasDateTimeInSchema(schemaRef.Value) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // RegisterOpenAPITools registers each OpenAPI operation as an MCP tool with a real HTTP handler.
 // Also adds tools for externalDocs, info, and describe if present in the OpenAPI spec.
 // The handler validates arguments, builds the HTTP request, and returns the HTTP response as the tool result.
@@ -1482,6 +1573,41 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			out, _ := json.Marshal(toolSummaries)
 			fmt.Println(string(out))
 		}
+	}
+
+	// Check if any operations use date/time parameters
+	hasTimeRelatedOps := false
+	for _, op := range ops {
+		if hasDateTimeParameters(op) {
+			hasTimeRelatedOps = true
+			break
+		}
+	}
+
+	// Add a resource that provides the current Unix timestamp only if there are time-related operations
+	if hasTimeRelatedOps && (opts == nil || !opts.DryRun) {
+		timestampResource := mcp.Resource{
+			URI:         "timestamp://current",
+			Name:        "Current Unix Timestamp",
+			Description: "Provides the current Unix timestamp in seconds to help the AI understand the current date and time",
+			MIMEType:    "application/json",
+		}
+
+		server.AddResource(timestampResource, func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+			now := time.Now().Unix()
+			content := fmt.Sprintf(`{"unix_timestamp": %d, "iso8601": "%s", "timezone": "%s"}`,
+				now,
+				time.Now().Format(time.RFC3339),
+				time.Now().Format("MST"))
+
+			return []mcp.ResourceContents{
+				mcp.TextResourceContents{
+					URI:      timestampResource.URI,
+					MIMEType: "application/json",
+					Text:     content,
+				},
+			}, nil
+		})
 	}
 
 	return toolNames
