@@ -36,6 +36,29 @@ func getParameterValue(args map[string]any, paramName string, paramNameMapping m
 	return nil, false
 }
 
+// formatParameterValue converts a parameter value to a string, formatting integers without decimals
+func formatParameterValue(val any, isInteger bool) string {
+	if isInteger {
+		// Handle integer formatting
+		switch v := val.(type) {
+		case float64:
+			// Convert float64 to int64 to remove decimals
+			return fmt.Sprintf("%d", int64(v))
+		case float32:
+			// Convert float32 to int64 to remove decimals
+			return fmt.Sprintf("%d", int64(v))
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+			// Already an integer type
+			return fmt.Sprintf("%d", v)
+		default:
+			// Fallback to default formatting
+			return fmt.Sprintf("%v", v)
+		}
+	}
+	// Default formatting for non-integer types
+	return fmt.Sprintf("%v", val)
+}
+
 // logHTTPRequest logs an HTTP request in human-readable format
 func logHTTPRequest(req *http.Request, body []byte) {
 	timestamp := time.Now().Format("2006-01-02 15:04:05 MST")
@@ -1069,7 +1092,12 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				p := paramRef.Value
 				if p.In == "path" {
 					if val, ok := getParameterValue(args, p.Name, paramNameMapping); ok {
-						path = strings.ReplaceAll(path, "{"+p.Name+"}", fmt.Sprintf("%v", val))
+						// Check if parameter is integer type
+						isInteger := false
+						if p.Schema != nil && p.Schema.Value != nil && p.Schema.Value.Type != nil {
+							isInteger = p.Schema.Value.Type.Is("integer")
+						}
+						path = strings.ReplaceAll(path, "{"+p.Name+"}", formatParameterValue(val, isInteger))
 					}
 				}
 			}
@@ -1082,7 +1110,12 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				p := paramRef.Value
 				if p.In == "query" {
 					if val, ok := getParameterValue(args, p.Name, paramNameMapping); ok {
-						query.Set(p.Name, fmt.Sprintf("%v", val))
+						// Check if parameter is integer type
+						isInteger := false
+						if p.Schema != nil && p.Schema.Value != nil && p.Schema.Value.Type != nil {
+							isInteger = p.Schema.Value.Type.Is("integer")
+						}
+						query.Set(p.Name, formatParameterValue(val, isInteger))
 					}
 				}
 			}
@@ -1200,7 +1233,12 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				p := paramRef.Value
 				if p.In == "header" {
 					if val, ok := getParameterValue(args, p.Name, paramNameMapping); ok {
-						httpReq.Header.Set(p.Name, fmt.Sprintf("%v", val))
+						// Check if parameter is integer type
+						isInteger := false
+						if p.Schema != nil && p.Schema.Value != nil && p.Schema.Value.Type != nil {
+							isInteger = p.Schema.Value.Type.Is("integer")
+						}
+						httpReq.Header.Set(p.Name, formatParameterValue(val, isInteger))
 					}
 				}
 			}
@@ -1213,7 +1251,12 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 				p := paramRef.Value
 				if p.In == "cookie" {
 					if val, ok := getParameterValue(args, p.Name, paramNameMapping); ok {
-						cookiePairs = append(cookiePairs, fmt.Sprintf("%s=%v", p.Name, val))
+						// Check if parameter is integer type
+						isInteger := false
+						if p.Schema != nil && p.Schema.Value != nil && p.Schema.Value.Type != nil {
+							isInteger = p.Schema.Value.Type.Is("integer")
+						}
+						cookiePairs = append(cookiePairs, fmt.Sprintf("%s=%s", p.Name, formatParameterValue(val, isInteger)))
 					}
 				}
 			}
