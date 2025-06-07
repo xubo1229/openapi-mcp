@@ -1215,7 +1215,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 					}, nil
 				}
 				// Create a simple text error message
-				errorText := fmt.Sprintf("HTTP Error: %s (HTTP %d)", http.StatusText(resp.StatusCode), resp.StatusCode)
+				errorText := fmt.Sprintf("HTTP %s %s\nError: %s (HTTP %d)", opCopy.Method, fullURL, http.StatusText(resp.StatusCode), resp.StatusCode)
 				if len(respBody) > 0 {
 					errorText += "\nDetails: " + string(respBody)
 				}
