@@ -1317,6 +1317,14 @@ paths:
                 - purge
     /service/{service_id}/stats/summary:
         get:
+            description: |
+                Get the stats from a service for a block of time. This lists all stats by PoP location, starting with AMS.
+
+                **IMPORTANT**: This endpoint requires parameters to select a block of time to query. Use ONE of these parameter combinations:
+                - Option 1: `start_time` + `end_time` (for custom date ranges using Unix timestamps)
+                - Option 2: `month` + `year` (for monthly data)
+
+                Do not mix parameters from different options. The API will return an error if you provide both timestamp and month/year parameters.
             operationId: GetServiceStats
             parameters:
                 - description: Alphanumeric string identifying the service
@@ -1325,20 +1333,30 @@ paths:
                   required: true
                   schema:
                     type: string
-                - description: Timestamp (Unix seconds)
+                - description: Unix epoch timestamp (e.g., 1608560817). Required when using timestamp range option. Limits the results to data on or after this time.
                   in: query
                   name: start_time
-                  required: true
                   schema:
-                    format: int64
+                    format: int32
                     type: integer
-                - description: Timestamp (Unix seconds)
+                - description: Unix epoch timestamp (e.g., 1608560817). Required when using timestamp range option. Limits the results to data on or before this time.
                   in: query
                   name: end_time
-                  required: true
                   schema:
-                    format: int64
+                    format: int32
                     type: integer
+                - description: 2-digit month (e.g., "05" for May). Required when using month/year option.
+                  in: query
+                  name: month
+                  schema:
+                    pattern: ^(0[1-9]|1[0-2])$
+                    type: string
+                - description: 4-digit year (e.g., "2020"). Required when using month/year option.
+                  in: query
+                  name: year
+                  schema:
+                    pattern: ^\d{4}$
+                    type: string
             responses:
                 "200":
                     content:
