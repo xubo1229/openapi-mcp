@@ -1096,12 +1096,12 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			var body []byte
 			var requestContentType string
 			if opCopy.RequestBody != nil && opCopy.RequestBody.Value != nil {
-				// Check for application/json first, then application/vnd.api+json
-				mt := opCopy.RequestBody.Value.Content.Get("application/json")
+				// Check for application/json first, then application/vnd.api+json (including with parameters)
+				mt := getContentByType(opCopy.RequestBody.Value.Content, "application/json")
 				if mt != nil {
 					requestContentType = "application/json"
 				} else {
-					mt = opCopy.RequestBody.Value.Content.Get("application/vnd.api+json")
+					mt = getContentByType(opCopy.RequestBody.Value.Content, "application/vnd.api+json")
 					if mt != nil {
 						requestContentType = "application/vnd.api+json"
 					}
