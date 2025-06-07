@@ -7,9 +7,133 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/jedisct1/openapi-mcp/pkg/openapi2mcp"
 	"gopkg.in/yaml.v3"
 )
+
+// collectUsedSchemas traverses the OpenAPI document and collects all schema names that are referenced
+func collectUsedSchemas(doc *openapi3.T) map[string]bool {
+	used := make(map[string]bool)
+
+	// Helper function to extract schema name from $ref
+	extractSchemaName := func(ref string) string {
+		if strings.HasPrefix(ref, "#/components/schemas/") {
+			return strings.TrimPrefix(ref, "#/components/schemas/")
+		}
+		return ""
+	}
+
+	// Helper function to recursively collect refs from a schema
+	var collectRefsFromSchema func(*openapi3.SchemaRef)
+	collectRefsFromSchema = func(schemaRef *openapi3.SchemaRef) {
+		if schemaRef == nil {
+			return
+		}
+
+		// Check if this is a reference
+		if schemaRef.Ref != "" {
+			if name := extractSchemaName(schemaRef.Ref); name != "" {
+				if !used[name] {
+					used[name] = true
+					// Recursively check the referenced schema
+					if doc.Components != nil && doc.Components.Schemas != nil {
+						if refSchema, exists := doc.Components.Schemas[name]; exists {
+							collectRefsFromSchema(refSchema)
+						}
+					}
+				}
+			}
+			return
+		}
+
+		// Check the schema value itself
+		if schemaRef.Value != nil {
+			schema := schemaRef.Value
+
+			// Check properties
+			for _, propRef := range schema.Properties {
+				collectRefsFromSchema(propRef)
+			}
+
+			// Check items (for arrays)
+			if schema.Items != nil {
+				collectRefsFromSchema(schema.Items)
+			}
+
+			// Check additionalProperties
+			if schema.AdditionalProperties.Schema != nil {
+				collectRefsFromSchema(schema.AdditionalProperties.Schema)
+			}
+
+			// Check allOf, anyOf, oneOf
+			for _, ref := range schema.AllOf {
+				collectRefsFromSchema(ref)
+			}
+			for _, ref := range schema.AnyOf {
+				collectRefsFromSchema(ref)
+			}
+			for _, ref := range schema.OneOf {
+				collectRefsFromSchema(ref)
+			}
+
+			// Check not
+			if schema.Not != nil {
+				collectRefsFromSchema(schema.Not)
+			}
+		}
+	}
+
+	// Traverse all paths and operations
+	if doc.Paths != nil {
+		for _, pathItem := range doc.Paths.Map() {
+			// Check parameters at path level
+			for _, paramRef := range pathItem.Parameters {
+				if paramRef != nil && paramRef.Value != nil && paramRef.Value.Schema != nil {
+					collectRefsFromSchema(paramRef.Value.Schema)
+				}
+			}
+
+			// Check each operation
+			for _, op := range pathItem.Operations() {
+				if op == nil {
+					continue
+				}
+
+				// Check parameters
+				for _, paramRef := range op.Parameters {
+					if paramRef != nil && paramRef.Value != nil && paramRef.Value.Schema != nil {
+						collectRefsFromSchema(paramRef.Value.Schema)
+					}
+				}
+
+				// Check request body
+				if op.RequestBody != nil && op.RequestBody.Value != nil {
+					for _, mediaType := range op.RequestBody.Value.Content {
+						if mediaType.Schema != nil {
+							collectRefsFromSchema(mediaType.Schema)
+						}
+					}
+				}
+
+				// Check responses
+				if op.Responses != nil {
+					for _, respRef := range op.Responses.Map() {
+						if respRef != nil && respRef.Value != nil {
+							for _, mediaType := range respRef.Value.Content {
+								if mediaType.Schema != nil {
+									collectRefsFromSchema(mediaType.Schema)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return used
+}
 
 // main is the entrypoint for the openapi-mcp CLI.
 // It parses flags, loads the OpenAPI spec, and dispatches to the appropriate mode (server, doc, dry-run, etc).
@@ -260,6 +384,17 @@ func main() {
 				}
 				if !hasOp {
 					doc.Paths.Delete(path)
+				}
+			}
+		}
+
+		// Clean up unused components/schemas
+		if doc.Components != nil && doc.Components.Schemas != nil {
+			usedSchemas := collectUsedSchemas(doc)
+			// Remove unused schemas
+			for schemaName := range doc.Components.Schemas {
+				if _, used := usedSchemas[schemaName]; !used {
+					delete(doc.Components.Schemas, schemaName)
 				}
 			}
 		}
