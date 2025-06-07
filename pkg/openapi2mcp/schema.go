@@ -179,14 +179,19 @@ func BuildInputSchema(params openapi3.Parameters, requestBody *openapi3.RequestB
 		}
 	}
 
-	// Request body (only application/json for now)
+	// Request body (application/json and application/vnd.api+json)
 	if requestBody != nil && requestBody.Value != nil {
 		for mtName := range requestBody.Value.Content {
-			if mtName != "application/json" {
-				fmt.Fprintf(os.Stderr, "[WARN] Request body uses media type '%s'. Only 'application/json' is fully supported.\n", mtName)
+			if mtName != "application/json" && mtName != "application/vnd.api+json" {
+				fmt.Fprintf(os.Stderr, "[WARN] Request body uses media type '%s'. Only 'application/json' and 'application/vnd.api+json' are fully supported.\n", mtName)
 			}
 		}
-		if mt := requestBody.Value.Content.Get("application/json"); mt != nil && mt.Schema != nil && mt.Schema.Value != nil {
+		// Try application/json first, then application/vnd.api+json
+		mt := requestBody.Value.Content.Get("application/json")
+		if mt == nil {
+			mt = requestBody.Value.Content.Get("application/vnd.api+json")
+		}
+		if mt != nil && mt.Schema != nil && mt.Schema.Value != nil {
 			bodyProp := extractProperty(mt.Schema)
 			bodyProp["description"] = "The JSON request body."
 			properties["requestBody"] = bodyProp

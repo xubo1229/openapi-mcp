@@ -692,11 +692,11 @@ func generateAI5xxErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, arg
 	// Add tool usage information for AI agents
 	var schemaObj map[string]any
 	_ = json.Unmarshal(inputSchemaJSON, &schemaObj)
-	
+
 	if properties, ok := schemaObj["properties"].(map[string]any); ok && len(properties) > 0 {
 		response.WriteString("\nTOOL USAGE INFORMATION:\n")
 		response.WriteString(fmt.Sprintf("Tool Name: %s\n", op.OperationID))
-		
+
 		// Show required parameters
 		if required, ok := schemaObj["required"].([]any); ok && len(required) > 0 {
 			response.WriteString("Required Parameters (mandatory for all calls):\n")
@@ -716,11 +716,11 @@ func generateAI5xxErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, arg
 				}
 			}
 		}
-		
+
 		// Generate example usage with correct parameters
 		response.WriteString("\nExample Usage (retry with these correct parameters):\n")
 		exampleArgs := map[string]any{}
-		
+
 		// Add required parameters to example
 		if required, ok := schemaObj["required"].([]any); ok {
 			for _, req := range required {
@@ -731,7 +731,7 @@ func generateAI5xxErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, arg
 				}
 			}
 		}
-		
+
 		// Add a few optional parameters for completeness
 		count := 0
 		for paramName, paramDef := range properties {
@@ -742,7 +742,7 @@ func generateAI5xxErrorResponse(op OpenAPIOperation, inputSchemaJSON []byte, arg
 				}
 			}
 		}
-		
+
 		exampleJSON, _ := json.MarshalIndent(exampleArgs, "", "  ")
 		response.WriteString(fmt.Sprintf("call %s %s\n", op.OperationID, string(exampleJSON)))
 	}
@@ -1003,8 +1003,20 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			}
 			// Build request body if needed
 			var body []byte
+			var requestContentType string
 			if opCopy.RequestBody != nil && opCopy.RequestBody.Value != nil {
-				if mt := opCopy.RequestBody.Value.Content.Get("application/json"); mt != nil && mt.Schema != nil && mt.Schema.Value != nil {
+				// Check for application/json first, then application/vnd.api+json
+				mt := opCopy.RequestBody.Value.Content.Get("application/json")
+				if mt != nil {
+					requestContentType = "application/json"
+				} else {
+					mt = opCopy.RequestBody.Value.Content.Get("application/vnd.api+json")
+					if mt != nil {
+						requestContentType = "application/vnd.api+json"
+					}
+				}
+
+				if mt != nil && mt.Schema != nil && mt.Schema.Value != nil {
 					if v, ok := args["requestBody"]; ok && v != nil {
 						body, _ = json.Marshal(v)
 					}
@@ -1016,9 +1028,11 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			if err != nil {
 				return nil, err
 			}
-			if len(body) > 0 {
-				httpReq.Header.Set("Content-Type", "application/json")
+			if len(body) > 0 && requestContentType != "" {
+				httpReq.Header.Set("Content-Type", requestContentType)
 			}
+			// Set Accept header to accept both JSON and JSON:API responses
+			httpReq.Header.Set("Accept", "application/json, application/vnd.api+json")
 			// --- AUTH HANDLING: inject per-operation security requirements ---
 			// For each security requirement object, try to satisfy at least one scheme
 			securitySatisfied := false
@@ -1134,7 +1148,7 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			}
 
 			contentType := resp.Header.Get("Content-Type")
-			isJSON := strings.HasPrefix(contentType, "application/json")
+			isJSON := strings.HasPrefix(contentType, "application/json") || strings.HasPrefix(contentType, "application/vnd.api+json")
 			isText := strings.HasPrefix(contentType, "text/")
 			isBinary := !isJSON && !isText
 
