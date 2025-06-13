@@ -1121,7 +1121,10 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			}
 			// Pick a random baseURL for each call using the global rand
 			baseURL := baseURLs[rand.Intn(len(baseURLs))]
-			fullURL := baseURL + path
+			fullURL, err := url.JoinPath(baseURL, path)
+			if err != nil {
+				return nil, err
+			}
 			if len(query) > 0 {
 				fullURL += "?" + query.Encode()
 			}
