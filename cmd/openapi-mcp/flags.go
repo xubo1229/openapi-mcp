@@ -73,8 +73,8 @@ func parseFlags() *cliFlags {
 	flags.machine = true
 	flag.StringVar(&flags.apiKeyFlag, "api-key", "", "API key for authenticated endpoints (overrides API_KEY env)")
 	flag.StringVar(&flags.baseURLFlag, "base-url", "", "Override the base URL for HTTP calls (overrides OPENAPI_BASE_URL env)")
-	flag.StringVar(&flags.bearerToken, "bearer-token", os.Getenv("BEARER_TOKEN"), "Bearer token for Authorization header (overrides BEARER_TOKEN env)")
-	flag.StringVar(&flags.basicAuth, "basic-auth", os.Getenv("BASIC_AUTH"), "Basic auth (user:pass) for Authorization header (overrides BASIC_AUTH env)")
+	flag.StringVar(&flags.bearerToken, "bearer-token", "", "Bearer token for Authorization header (overrides BEARER_TOKEN env)")
+	flag.StringVar(&flags.basicAuth, "basic-auth", "", "Basic auth (user:pass) for Authorization header (overrides BASIC_AUTH env)")
 	flag.StringVar(&flags.httpAddr, "http", "", "Serve over HTTP on this address (e.g., :8080). For MCP server: serves tools via HTTP. For validate/lint: creates REST API endpoints.")
 	flag.StringVar(&flags.httpTransport, "http-transport", "streamable", "HTTP transport to use for MCP server: 'streamable' (default) or 'sse'")
 	flag.StringVar(&flags.includeDescRegex, "include-desc-regex", "", "Only include APIs whose description matches this regex (overrides INCLUDE_DESC_REGEX env)")
@@ -108,6 +108,12 @@ func setEnvFromFlags(flags *cliFlags) {
 	}
 	if flags.baseURLFlag != "" {
 		os.Setenv("OPENAPI_BASE_URL", flags.baseURLFlag)
+	}
+	if flags.bearerToken != "" {
+		os.Setenv("BEARER_TOKEN", flags.bearerToken)
+	}
+	if flags.basicAuth != "" {
+		os.Setenv("BASIC_AUTH", flags.basicAuth)
 	}
 	if flags.includeDescRegex != "" {
 		os.Setenv("INCLUDE_DESC_REGEX", flags.includeDescRegex)
