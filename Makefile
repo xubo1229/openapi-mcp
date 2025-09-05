@@ -1,13 +1,15 @@
 # Binaries will be built into the ./bin directory
 .PHONY: all clean test \
-        bin/qihoo-mcp-linux-client bin/qihoo-mcp-mac-client \
-        bin/qihoo-openapi-linux-mcp bin/qihoo-openapi-mac-mcp
+        bin/qihoo-mcp-linux-client bin/qihoo-mcp-mac-client bin/qihoo-mcp-windows-client.exe \
+        bin/qihoo-openapi-linux-mcp bin/qihoo-openapi-mac-mcp bin/qihoo-openapi-windows-mcp.exe
 
 all: \
     bin/qihoo-mcp-linux-client \
     bin/qihoo-mcp-mac-client \
+    bin/qihoo-mcp-windows-client.exe \
     bin/qihoo-openapi-linux-mcp \
-    bin/qihoo-openapi-mac-mcp
+    bin/qihoo-openapi-mac-mcp \
+    bin/qihoo-openapi-windows-mcp.exe
 
 # ==== MCP CLIENT ====
 
@@ -21,6 +23,12 @@ bin/qihoo-mcp-mac-client: $(shell find pkg -type f -name '*.go') $(shell find cm
 	@mkdir -p bin
 	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o bin/qihoo-mcp-mac-client ./cmd/mcp-client
 
+# Windows 64-bit
+bin/qihoo-mcp-windows-client.exe: $(shell find pkg -type f -name '*.go') $(shell find cmd/mcp-client -type f -name '*.go')
+	@mkdir -p bin
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o bin/qihoo-mcp-windows-client.exe ./cmd/mcp-client
+
+
 # ==== OPENAPI MCP ====
 
 # Linux 64-bit
@@ -33,8 +41,14 @@ bin/qihoo-openapi-mac-mcp: $(shell find pkg -type f -name '*.go') $(shell find c
 	@mkdir -p bin
 	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o bin/qihoo-openapi-mac-mcp ./cmd/openapi-mcp
 
-test:
-	go test ./...
+# Windows 64-bit
+bin/qihoo-openapi-windows-mcp.exe: $(shell find pkg -type f -name '*.go') $(shell find cmd/openapi-mcp -type f -name '*.go')
+	@mkdir -p bin
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o bin/qihoo-openapi-windows-mcp.exe ./cmd/openapi-mcp
+
+
+# test:
+# 	go test ./...
 
 clean:
 	rm -f bin/qihoo-mcp-*-client bin/qihoo-openapi-*-mcp
