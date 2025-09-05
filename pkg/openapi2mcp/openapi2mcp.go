@@ -17,6 +17,7 @@ type OpenAPIOperation struct {
 	Parameters  openapi3.Parameters
 	RequestBody *openapi3.RequestBodyRef
 	Tags        []string
+	Servers     openapi3.Servers
 	Security    openapi3.SecurityRequirements
 }
 

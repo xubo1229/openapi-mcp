@@ -177,6 +177,12 @@ func ExtractOpenAPIOperations(doc *openapi3.T) []OpenAPIOperation {
 			} else {
 				security = doc.Security
 			}
+
+			var servers openapi3.Servers
+			if op.Servers != nil {
+				servers = *op.Servers
+			}
+
 			ops = append(ops, OpenAPIOperation{
 				OperationID: id,
 				Summary:     op.Summary,
@@ -186,6 +192,7 @@ func ExtractOpenAPIOperations(doc *openapi3.T) []OpenAPIOperation {
 				Parameters:  mergedParams,
 				RequestBody: op.RequestBody,
 				Tags:        tags,
+				Servers:     servers,
 				Security:    security,
 			})
 		}
