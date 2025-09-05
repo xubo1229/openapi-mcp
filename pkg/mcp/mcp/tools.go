@@ -72,6 +72,24 @@ type CallToolRequest struct {
 	} `json:"params"`
 }
 
+// GetHeaders extracts custom headers from the request's meta field
+func (r CallToolRequest) GetHeaders() map[string]string {
+	headers := make(map[string]string)
+
+	// Extract headers from meta field if present
+	if r.Params.Meta != nil && r.Params.Meta.AdditionalFields != nil {
+		if headerData, ok := r.Params.Meta.AdditionalFields["headers"].(map[string]any); ok {
+			for key, value := range headerData {
+				if strValue, ok := value.(string); ok {
+					headers[key] = strValue
+				}
+			}
+		}
+	}
+
+	return headers
+}
+
 // GetArguments returns the Arguments as map[string]any for backward compatibility
 // If Arguments is not a map, it returns an empty map
 func (r CallToolRequest) GetArguments() map[string]any {

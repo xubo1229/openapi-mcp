@@ -236,6 +236,8 @@ func (s *StreamableHTTPServer) handlePost(w http.ResponseWriter, r *http.Request
 
 	// Set the client context before handling the message
 	ctx := s.server.WithContext(r.Context(), session)
+	// Extract custom headers and add them to context
+	ctx = extractCustomHeaders(ctx, r)
 	if s.contextFunc != nil {
 		ctx = s.contextFunc(ctx, r)
 	}

@@ -183,6 +183,23 @@ curl -H "Authorization: Basic base64_credentials" http://localhost:8080/mcp -d '
 
 Authentication is automatically applied to the appropriate endpoints as defined in your OpenAPI spec. HTTP header authentication takes precedence over environment variables for the duration of each request.
 
+### Custom Headers
+
+You can add custom headers to all API requests using the `--header` flag. This is useful for passing additional context or metadata to your API:
+
+```sh
+# Add a single custom header
+bin/openapi-mcp --header="X-Custom-Header: my-value" api.yaml
+
+# Add multiple custom headers
+bin/openapi-mcp --header="X-Custom-Header: value1" --header="X-Another-Header: value2" api.yaml
+
+# Combine with other flags
+bin/openapi-mcp --header="X-Custom-Header: value" --api-key=mykey api.yaml
+```
+
+Custom headers are added to every API request made by the tools, allowing you to pass additional information that your API might require.
+
 When using HTTP mode, openapi-mcp serves a StreamableHTTP-based MCP server by default. For developers building HTTP clients, the package provides convenient URL helper functions:
 
 ```go
@@ -409,6 +426,7 @@ bin/openapi-mcp --no-confirm-dangerous examples/fastly-openapi-mcp.yaml
 | `--bearer-token`         | `BEARER_TOKEN`       | Bearer token for Authorization header                    |
 | `--basic-auth`           | `BASIC_AUTH`         | Basic auth credentials (user:pass)                       |
 | `--base-url`             | `OPENAPI_BASE_URL`   | Override base URL for HTTP calls                         |
+| `--header`               | `CUSTOM_HEADERS`     | Add custom header to API requests (format: 'Key: Value') (repeatable) |
 | `--http`                 | -                    | Serve MCP over HTTP instead of stdio                     |
 | `--tag`                  | `OPENAPI_TAG`        | Only include operations with this tag                    |
 | `--include-desc-regex`   | `INCLUDE_DESC_REGEX` | Only include APIs matching regex                         |

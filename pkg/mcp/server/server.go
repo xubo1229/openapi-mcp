@@ -56,6 +56,9 @@ type ServerTool struct {
 // serverKey is the context key for storing the server instance
 type serverKey struct{}
 
+// ClientHeadersKey is the context key for storing client headers
+type ClientHeadersKey struct{}
+
 // ServerFromContext retrieves the MCPServer instance from a context
 func ServerFromContext(ctx context.Context) *MCPServer {
 	if srv, ok := ctx.Value(serverKey{}).(*MCPServer); ok {

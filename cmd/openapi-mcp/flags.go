@@ -31,6 +31,7 @@ type cliFlags struct {
 	docFormat          string
 	postHookCmd        string
 	noConfirmDangerous bool
+	headers            multiFlag // Custom headers to pass through to API requests
 	args               []string
 	mounts             mountFlags // slice of mountFlag
 	functionListFile   string     // Path to file listing functions to include (for filter command)
@@ -92,6 +93,7 @@ func parseFlags() *cliFlags {
 	flag.StringVar(&flags.functionListFile, "function-list-file", "", "File with list of function (operationId) names to include (one per line, for filter command)")
 	flag.StringVar(&flags.logFile, "log-file", "", "File path to log all MCP requests and responses for debugging")
 	flag.BoolVar(&flags.noLogTruncation, "no-log-truncation", false, "Disable truncation of long values in human-readable MCP logs")
+	flag.Var(&flags.headers, "header", "Add custom header to API requests (format: 'Key: Value') (repeatable)")
 	flag.Parse()
 	flags.args = flag.Args()
 	if flags.extended {
@@ -120,6 +122,13 @@ func setEnvFromFlags(flags *cliFlags) {
 	}
 	if flags.excludeDescRegex != "" {
 		os.Setenv("EXCLUDE_DESC_REGEX", flags.excludeDescRegex)
+	}
+
+	// Set custom headers as environment variable
+	if len(flags.headers) > 0 {
+		// Join all headers with a delimiter that is unlikely to appear in headers
+		headersStr := strings.Join(flags.headers, "|HEADER_DELIMITER|")
+		os.Setenv("CUSTOM_HEADERS", headersStr)
 	}
 }
 
@@ -179,6 +188,8 @@ Examples:
     openapi-mcp --include-desc-regex="user.*" api.yaml      # Filter by description
     openapi-mcp --no-confirm-dangerous api.yaml             # Skip confirmations
     openapi-mcp --http-transport=sse --http=:8080 api.yaml  # Use SSE transport
+    openapi-mcp --header="X-Custom-Header: value" --header="X-Another: value2" api.yaml  # Add custom headers
+
 
 Flags:
   --extended           Enable extended (human-friendly) output (default: minimal/agent)
@@ -206,6 +217,7 @@ Flags:
   --function-list-file   File with list of function (operationId) names to include (one per line, for filter command)
   --log-file           File path to log all MCP requests and responses for debugging
   --no-log-truncation  Disable truncation of long values in human-readable MCP logs
+  --header             Add custom header to API requests (format: 'Key: Value') (repeatable)
   --help, -h           Show help
 
 By default, output is minimal and agent-friendly. Use --extended for banners, help, and human-readable output.

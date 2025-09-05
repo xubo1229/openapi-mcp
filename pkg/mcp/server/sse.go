@@ -718,6 +718,36 @@ func (s *SSEServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
+// extractCustomHeaders extracts custom headers from HTTP request and adds them to context
+func extractCustomHeaders(ctx context.Context, r *http.Request) context.Context {
+	// Extract all headers except standard ones that might conflict with authentication
+	customHeaders := make(map[string]string)
+	for name, values := range r.Header {
+		// Skip standard headers that could conflict with authentication
+		lowerName := strings.ToLower(name)
+		if lowerName == "content-type" ||
+			lowerName == "content-length" ||
+			lowerName == "user-agent" ||
+			lowerName == "accept" ||
+			lowerName == "accept-encoding" ||
+			lowerName == "accept-language" ||
+			lowerName == "connection" ||
+			lowerName == "host" {
+			continue
+		}
+
+		// Join multiple values with comma (standard HTTP behavior)
+		customHeaders[name] = strings.Join(values, ", ")
+	}
+
+	// Add custom headers to context if any were found
+	if len(customHeaders) > 0 {
+		ctx = context.WithValue(ctx, ClientHeadersKey{}, customHeaders)
+	}
+
+	return ctx
+}
+
 // normalizeURLPath joins path elements like path.Join but ensures the
 // result always starts with a leading slash and never ends with a slash
 func normalizeURLPath(elem ...string) string {

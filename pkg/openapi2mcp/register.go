@@ -942,6 +942,12 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			continue
 		}
 		server.AddTool(tool, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			// Extract client headers and add them to context
+			clientHeaders := req.GetHeaders()
+			if len(clientHeaders) > 0 {
+				ctx = context.WithValue(ctx, mcpserver.ClientHeadersKey{}, clientHeaders)
+			}
+
 			args := req.GetArguments()
 			if args == nil {
 				args = map[string]any{}
@@ -1273,6 +1279,29 @@ func RegisterOpenAPITools(server *mcpserver.MCPServer, ops []OpenAPIOperation, d
 			}
 			if len(cookiePairs) > 0 {
 				httpReq.Header.Set("Cookie", strings.Join(cookiePairs, "; "))
+			}
+
+			// Add custom headers from environment variable
+			if customHeaders := os.Getenv("CUSTOM_HEADERS"); customHeaders != "" {
+				// Split headers by delimiter
+				headerPairs := strings.Split(customHeaders, "|HEADER_DELIMITER|")
+				for _, headerPair := range headerPairs {
+					// Parse header in format "Key: Value"
+					if colonIndex := strings.Index(headerPair, ":"); colonIndex > 0 {
+						key := strings.TrimSpace(headerPair[:colonIndex])
+						value := strings.TrimSpace(headerPair[colonIndex+1:])
+						if key != "" && value != "" {
+							httpReq.Header.Set(key, value)
+						}
+					}
+				}
+			}
+
+			// Add custom headers from client request
+			if clientHeaders, ok := ctx.Value(mcpserver.ClientHeadersKey{}).(map[string]string); ok {
+				for key, value := range clientHeaders {
+					httpReq.Header.Set(key, value)
+				}
 			}
 
 			// Log HTTP request if logging is enabled
