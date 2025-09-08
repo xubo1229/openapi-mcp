@@ -1,143 +1,22 @@
 openapi: 3.0.3
 info:
-  title: MCP & API-Cloud Controller API
-  description: 数据开发、集成数据开发平台、监控接口以及计算队列管理接口
+  title: Qilin Platform API
+  description: API for Qilin platform monitoring and management
   version: 1.0.0
 
 servers:
   - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-    description: MCP API Server
+    description: Production server
 
 paths:
-  # ---------------- API-Cloud 计算队列接口 ----------------
-  /commonQueue/api/queues:
-    get:
-      tags:
-        - queueMcp
-      summary: 获取计算队列列表
-      servers:
-        - url: http://test03.qilin.zzdt.qihoo.net:8090
-          description: MCP API Server
-      description: "获取计算队列列表，可以根据集群(dfs_shbt, safe_lycc, qss_zzzc)和资源组ID条件查询。返回每个计算队列属性如下:id=队列id;queue=队列名称;status=状态: 1 运行中 2 挂起 3 启动中、4 正在挂起、5 审批中 6 未通过;cluster=集群;baseCu=基础CU数;createName=创建人;useStatus=资源是否正在使用：1表示有运行任务，0表示没有运行任务;useCu=实际使用CU数;totalCu=总CU数;"
-      operationId: getQueueList
-      parameters:
-        - name: cluster
-          in: query
-          description: 集群
-          required: false
-          schema:
-            type: string
-          example: dfs_shbt
-        - name: groupId
-          in: query
-          description: 资源组ID
-          required: false
-          schema:
-            type: string
-          example: "10105"
-      responses:
-        "200":
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Resp57bb865f3a5e41ae8ccc015f41f555ea"
-      x-api-cloud: 00000000-0000-0009-860a-8e435d23f838
-
-  /commonQueue/api/queues/info/name:
-    get:
-      tags:
-        - queueMcp
-      summary: 查询计算队列详情
-      servers:
-        - url: http://test03.qilin.zzdt.qihoo.net:8090
-          description: MCP API Server
-      description: "查询计算队列详情，根据集群名称(dfs_shbt, safe_lycc, qss_zzzc)、计算队列名称模糊查询计算队列详情;返回每个计算队列属性如下:id=队列id;queue=队列名称;status=状态: 1 运行中 2 挂起 3 启动中、4 正在挂起、5 审批中 6 未通过;cluster=集群;baseCu=基础CU数;createName=创建人;useStatus=资源是否正在使用：1表示有运行任务，0表示没有运行任务;useCu=实际使用CU数;totalCu=总CU数;"
-      operationId: getQueueDetail
-      parameters:
-        - name: cluster
-          in: query
-          description: "集群名称(dfs_shbt,safe_lycc, qss_zzzc)"
-          required: false
-          schema:
-            type: string
-          example: dfs_shbt
-        - name: queueName
-          in: query
-          description: 计算队列名称
-          required: true
-          schema:
-            type: string
-          example: hdp-xp-xs
-      responses:
-        "200":
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Respbf3d514d7e4d4649894a9a1e87838050"
-      x-api-cloud: 00000000-0000-0009-860a-9a8dfa12a23c
-
-  /commonQueue/api/queues/apps/name:
-    get:
-      tags:
-        - queueMcp
-      summary: 查询计算队列下的应用app列表
-      servers:
-        - url: http://test03.qilin.zzdt.qihoo.net:8090
-          description: MCP API Server
-      description: "查询计算队列下的应用app列表，根据集群名称(dfs_shbt, safe_lycc, qss_zzzc)、计算队列名称模糊查询计算队列下的应用app列表;返回应用app的属性如下: appId=应用id;appName=应用名称;startedTime=开始时间;finishedTime=完成时间;user=提交的hadoop账号;appType=应用类型;state=应用状态;progress=进度;elapsedTime=应用持续时长;"
-      operationId: getAppListByQueue
-      parameters:
-        - name: cluster
-          in: query
-          description: 集群
-          required: false
-          schema:
-            type: string
-          example: dfs_shbt
-        - name: queueName
-          in: query
-          description: 计算队列名称
-          required: true
-          schema:
-            type: string
-          example: root.hdp-xp-xs
-      responses:
-        "200":
-          description: 成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Resp27e38f3382364ee883441e8fd96617ae"
-      x-api-cloud: 00000000-0000-0009-860e-31553156c038
-
-  # ---------------- MCP Controller 监控接口 ----------------
-  /platformExecReport:
-    get:
-      tags:
-        - xsMcp
-      summary: 获取qilin数据开发平台运行报告
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
-      description: 获取qilin数据开发平台运行报告
-      responses:
-        '200':
-          description: 成功返回平台运行报告
-          content:
-            application/json:
-              schema:
-                type: object
-
   /platform/statMasterStatus:
     get:
       tags:
         - xsMcp
       summary: qilin数据开发平台master状态统计，正常和异常的数目
+      operationId: getStatMasterStatus
       servers:
         - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
       description: qilin数据开发平台master状态统计，正常和异常的数目
       responses:
         '200':
@@ -152,9 +31,9 @@ paths:
       tags:
         - xsMcp
       summary: qilin数据开发平台worker状态统计，正常和异常的数目
+      operationId: getStatWorkerStatus
       servers:
         - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
       description: qilin数据开发平台worker状态统计，正常和异常的数目
       responses:
         '200':
@@ -169,9 +48,9 @@ paths:
       tags:
         - xsMcp
       summary: qilin数据开发平台zookeeper状态统计，正常和异常的节点数目
+      operationId: getStatZookeeperStatus
       servers:
         - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
       description: qilin数据开发平台zookeeper状态统计，正常和异常的节点数目
       responses:
         '200':
@@ -186,9 +65,9 @@ paths:
       tags:
         - xsMcp
       summary: qilin数据开发平台cpu使用率top10的worker
+      operationId: getTopCpuWorker
       servers:
         - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
       description: qilin数据开发平台cpu使用率top10的worker
       responses:
         '200':
@@ -203,9 +82,9 @@ paths:
       tags:
         - xsMcp
       summary: qilin数据开发平台内存使用率top10的worker
+      operationId: getTopMemWorker
       servers:
         - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
       description: qilin数据开发平台内存使用率top10的worker
       responses:
         '200':
@@ -220,9 +99,9 @@ paths:
       tags:
         - xsMcp
       summary: qilin数据开发平台负载top10的worker
+      operationId: getTopLoadWorker
       servers:
         - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
       description: qilin数据开发平台负载top10的worker
       responses:
         '200':
@@ -237,9 +116,9 @@ paths:
       tags:
         - xsMcp
       summary: qilin数据开发平台正在运行任务数top10的worker
+      operationId: getTopRunningTaskWorker
       servers:
         - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
       description: qilin数据开发平台正在运行任务数top10的worker
       responses:
         '200':
@@ -248,134 +127,3 @@ paths:
             application/json:
               schema:
                 type: object
-
-  /platform/statTopCpuMaster:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台cpu使用率top10的master
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
-      description: qilin数据开发平台cpu使用率top10的master
-      responses:
-        '200':
-          description: 成功返回CPU使用率Top10 Master
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /platform/statTopMemMaster:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台内存使用率top10的master
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
-      description: qilin数据开发平台内存使用率top10的master
-      responses:
-        '200':
-          description: 成功返回内存使用率Top10 Master
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /platform/statTopLoadMaster:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台负载top的master
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
-      description: qilin数据开发平台负载top的master
-      responses:
-        '200':
-          description: 成功返回负载Top Master
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /monitor/master/list:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台计算监控中心master列表
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
-      description: qilin数据开发平台计算监控中心master列表
-      responses:
-        '200':
-          description: 成功返回Master列表
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /monitor/worker/list:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台监控中心worker列表
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
-      description: qilin数据开发平台监控中心worker列表
-      responses:
-        '200':
-          description: 成功返回Worker列表
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /monitor/zookeeper/list:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台监控中心zookeeper列表
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
-      description: qilin数据开发平台监控中心zookeeper列表
-      responses:
-        '200':
-          description: 成功返回Zookeeper列表
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /monitor/db/list:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台监控中心db列表
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-          description: MCP API Server
-      description: qilin数据开发平台监控中心db列表
-      responses:
-        '200':
-          description: 成功返回DB列表
-          content:
-            application/json:
-              schema:
-                type: object
-
-components:
-  schemas:
-    Resp57bb865f3a5e41ae8ccc015f41f555ea:
-      type: object
-      properties: {}
-    Respbf3d514d7e4d4649894a9a1e87838050:
-      type: object
-      properties: {}
-    Resp27e38f3382364ee883441e8fd96617ae:
-      type: object
-      properties: {}

@@ -1,11 +1,15 @@
 # Default specs directory
-SPEC_DIR ?= ./openapi-file
+
+# 支持逗号分隔
+SPEC_FILES ?= ./openapi-file/calculate.yaml
+# 把逗号换成空格 → 单文件/多文件都适用
+SPEC_FILES_LIST := $(subst ,, ,$(SPEC_FILES))
 
 # Build directory
 BUILD_DIR ?= ./bin
 
 # Binary name (without extension)
-BINARY_NAME ?= openapi-mcp-qihoo
+BINARY_NAME ?= qihoo-openapi-mcp
 
 .PHONY: build build-mac build-windows build-linux build-with-ext clean all
 
@@ -20,40 +24,70 @@ ARCH := amd64
 
 # ---------------- Build ----------------
 build:
-	@echo "Building with specs from: $(SPEC_DIR)"
+	@echo "Building with specs from: $(SPEC_FILES)"
 	@mkdir -p $(BUILD_DIR)
 	# Copy specs to the expected directory before building
 	rm -rf ./cmd/openapi-mcp-no-file-argument/specs
-	cp -r $(SPEC_DIR) ./cmd/openapi-mcp-no-file-argument/specs
+	mkdir -p ./cmd/openapi-mcp-no-file-argument/specs
+    # 循环拷贝多个文件/目录
+	@for file in $(SPEC_FILES_LIST); do \
+		if [ -d "$$file" ]; then \
+			cp -r "$$file"/* ./cmd/openapi-mcp-no-file-argument/specs; \
+		else \
+			cp -r "$$file" ./cmd/openapi-mcp-no-file-argument/specs; \
+		fi; \
+	done
 	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/openapi-mcp-no-file-argument
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
 # ---------------- Build for specific platform ----------------
 build-mac:
-	@echo "Building for darwin/$(ARCH) with specs from: $(SPEC_DIR)"
+	@echo "Building for darwin/$(ARCH) with specs from: $(SPEC_FILES)"
 	@mkdir -p $(BUILD_DIR)
 	rm -rf ./cmd/openapi-mcp-no-file-argument/specs
-	cp -r $(SPEC_DIR) ./cmd/openapi-mcp-no-file-argument/specs
+	mkdir -p ./cmd/openapi-mcp-no-file-argument/specs
+    # 循环拷贝多个文件/目录
+	@for file in $(SPEC_FILES_LIST); do \
+		if [ -d "$$file" ]; then \
+			cp -r "$$file"/* ./cmd/openapi-mcp-no-file-argument/specs; \
+		else \
+			cp -r "$$file" ./cmd/openapi-mcp-no-file-argument/specs; \
+		fi; \
+	done
 	GOOS=darwin GOARCH=$(ARCH) go build -o $(BUILD_DIR)/$(BINARY_NAME)-mac ./cmd/openapi-mcp-no-file-argument
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)-mac"
 
 build-windows:
-	@echo "Building for windows/$(ARCH) with specs from: $(SPEC_DIR)"
+	@echo "Building for windows/$(ARCH) with specs from: $(SPEC_FILES)"
 	@mkdir -p $(BUILD_DIR)
 	rm -rf ./cmd/openapi-mcp-no-file-argument/specs
-	cp -r $(SPEC_DIR) ./cmd/openapi-mcp-no-file-argument/specs
+	mkdir -p ./cmd/openapi-mcp-no-file-argument/specs
+    # 循环拷贝多个文件/目录
+	@for file in $(SPEC_FILES_LIST); do \
+		if [ -d "$$file" ]; then \
+			cp -r "$$file"/* ./cmd/openapi-mcp-no-file-argument/specs; \
+		else \
+			cp -r "$$file" ./cmd/openapi-mcp-no-file-argument/specs; \
+		fi; \
+	done
 	GOOS=windows GOARCH=$(ARCH) go build -o $(BUILD_DIR)/$(BINARY_NAME)-windows.exe ./cmd/openapi-mcp-no-file-argument
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)-windows.exe"
 
 build-linux:
-	@echo "Building for linux/$(ARCH) with specs from: $(SPEC_DIR)"
+	@echo "Building for linux/$(ARCH) with specs from: $(SPEC_FILES)"
 	@mkdir -p $(BUILD_DIR)
 	rm -rf ./cmd/openapi-mcp-no-file-argument/specs
-	cp -r $(SPEC_DIR) ./cmd/openapi-mcp-no-file-argument/specs
+	mkdir -p ./cmd/openapi-mcp-no-file-argument/specs
+    # 循环拷贝多个文件/目录
+	@for file in $(SPEC_FILES_LIST); do \
+		if [ -d "$$file" ]; then \
+			cp -r "$$file"/* ./cmd/openapi-mcp-no-file-argument/specs; \
+		else \
+			cp -r "$$file" ./cmd/openapi-mcp-no-file-argument/specs; \
+		fi; \
+	done
 	GOOS=linux GOARCH=$(ARCH) go build -o $(BUILD_DIR)/$(BINARY_NAME)-linux ./cmd/openapi-mcp-no-file-argument
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)-linux"
-
-
 
 # ---------------- Clean ----------------
 clean:

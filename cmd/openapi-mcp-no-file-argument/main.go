@@ -21,7 +21,7 @@ func loadOpenAPISpecsFromEmbedded() ([]*openapi3.T, error) {
 	var errors []error
 
 	// Read all files from the embedded specs directory
-	entries, err := specFiles.ReadDir(".")
+	entries, err := specFiles.ReadDir("specs")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read embedded specs directory: %v", err)
 	}
@@ -32,7 +32,7 @@ func loadOpenAPISpecsFromEmbedded() ([]*openapi3.T, error) {
 		}
 
 		// Read the file content
-		data, err := specFiles.ReadFile(entry.Name())
+		data, err := specFiles.ReadFile("specs/" + entry.Name())
 		if err != nil {
 			errors = append(errors, fmt.Errorf("failed to read embedded file %s: %v", entry.Name(), err))
 			continue
@@ -202,9 +202,32 @@ func main() {
 
 	args := flags.args
 
-	// For HTTP mode, start server directly
+	// For HTTP mode, load specs and start server
 	if flags.httpAddr != "" {
-		startServer(flags, nil, nil)
+		// Load specs for HTTP mode
+		docs, err := loadOpenAPISpecsFromEmbedded()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Could not load embedded OpenAPI spec: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Merge specs if multiple found
+		var doc *openapi3.T
+		if len(docs) > 1 {
+			fmt.Fprintf(os.Stderr, "Multiple OpenAPI specs found (%d), merging...\n", len(docs))
+			doc, err = openapi2mcp.MergeOpenAPISpecs(docs)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to merge specs: %v\n", err)
+				// Fall back to using the first spec
+				doc = docs[0]
+				fmt.Fprintf(os.Stderr, "Using first spec only.\n")
+			}
+		} else {
+			doc = docs[0]
+		}
+
+		ops := openapi2mcp.ExtractFilteredOpenAPIOperations(doc, nil, nil)
+		startServer(flags, ops, doc)
 		return
 	}
 

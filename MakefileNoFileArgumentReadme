@@ -15,10 +15,10 @@ To build the tool with your own OpenAPI specifications:
 
 ```bash
 # Using the custom Makefile
-make -f MakefileNoFileArgument SPEC_DIR=./my-openapi-specs build
+make -f MakefileNoFileArgument SPEC_FILES=./openapi-file/calculate.yaml BUILD_DIR=./bin
 
 # Or directly with environment variable
-SPEC_DIR=./my-openapi-specs make -f MakefileNoFileArgument build
+BUILD_DIR=./bin SPEC_FILES=./openapi-file/calculate.yaml make -f MakefileNoFileArgument
 ```
 
 ## Directory Structure
