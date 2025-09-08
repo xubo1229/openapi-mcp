@@ -47,8 +47,8 @@ bin/qihoo-openapi-windows-mcp.exe: $(shell find pkg -type f -name '*.go') $(shel
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o bin/qihoo-openapi-windows-mcp.exe ./cmd/openapi-mcp
 
 
-# test:
-# 	go test ./...
+test:
+	go test ./...
 
 clean:
 	rm -f bin/qihoo-mcp-*-client bin/qihoo-openapi-*-mcp
