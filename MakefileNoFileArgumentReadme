@@ -1,0 +1,55 @@
+# Simplified OpenAPI MCP with Embedded File System
+
+This version of openapi-mcp has been simplified to only support loading OpenAPI specifications through Go's embedded file system.
+
+## How It Works
+
+All OpenAPI specification files placed in the `specs/` directory at build time will be embedded directly into the binary. At runtime, the tool will automatically load and merge all embedded specifications.
+
+## Building with Custom Specs
+
+To build the tool with your own OpenAPI specifications:
+
+1. Prepare your OpenAPI spec files in a directory (e.g., `./my-openapi-specs/`)
+2. Use the custom Makefile to build:
+
+```bash
+# Using the custom Makefile
+make -f MakefileNoFileArgument SPEC_DIR=./my-openapi-specs build
+
+# Or directly with environment variable
+SPEC_DIR=./my-openapi-specs make -f MakefileNoFileArgument build
+```
+
+## Directory Structure
+
+```
+your-project/
+├── cmd/openapi-mcp-no-file-argument/
+│   ├── main.go              # Main application code
+│   └── specs/               # OpenAPI spec files (populated at build time)
+├── my-openapi-specs/        # Your source spec files
+│   ├── api1.yaml
+│   ├── api2.yaml
+│   └── api3.yaml
+└── custom_build_makefile    # Custom build instructions
+```
+
+## Features Removed
+
+The following features have been intentionally removed:
+1. Environment variable support (`OPENAPI_FILES`, `OPENAPI_FILE`)
+2. Single embedded file (`openapi_spec.yaml`)
+3. Runtime file loading capabilities
+
+This simplification makes the tool more predictable and secure by only allowing build-time specification of APIs.
+
+## Usage
+
+After building, simply run the binary:
+
+```bash
+./bin/openapi-mcp-no-file-arg
+```
+
+The tool will automatically load all embedded specifications and start the server.

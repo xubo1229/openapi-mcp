@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "embed"
+	"embed"
 	"fmt"
 	"os"
 	"regexp"
@@ -12,8 +12,57 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-//go:embed openapi_spec.yaml
-var openapiSpecData string
+//go:embed specs/*
+var specFiles embed.FS
+
+// loadOpenAPISpecsFromEmbedded loads all OpenAPI specs from the embedded filesystem
+func loadOpenAPISpecsFromEmbedded() ([]*openapi3.T, error) {
+	var docs []*openapi3.T
+	var errors []error
+
+	// Read all files from the embedded specs directory
+	entries, err := specFiles.ReadDir(".")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read embedded specs directory: %v", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		// Read the file content
+		data, err := specFiles.ReadFile(entry.Name())
+		if err != nil {
+			errors = append(errors, fmt.Errorf("failed to read embedded file %s: %v", entry.Name(), err))
+			continue
+		}
+
+		// Load spec from bytes
+		doc, err := openapi2mcp.LoadOpenAPISpecFromBytes(data)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("failed to load spec from embedded file %s: %v", entry.Name(), err))
+			continue
+		}
+
+		docs = append(docs, doc)
+	}
+
+	if len(errors) > 0 {
+		// If we have both docs and errors, return the docs but with a warning
+		if len(docs) > 0 {
+			return docs, fmt.Errorf("some embedded specs failed to load: %v", errors)
+		}
+		return docs, fmt.Errorf("all embedded specs failed to load: %v", errors)
+	}
+
+	// If no specs were loaded, return an error
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("no OpenAPI specs found in embedded filesystem")
+	}
+
+	return docs, nil
+}
 
 // collectUsedSchemas traverses the OpenAPI document and collects all schema names that are referenced
 func collectUsedSchemas(doc *openapi3.T) map[string]bool {
@@ -206,10 +255,10 @@ func main() {
 
 		// For embedded version, always use the embedded spec
 		// Load multiple specs if present
-		docs, err := openapi2mcp.LoadMultipleOpenAPISpecsFromString(openapiSpecData)
+		docs, err := loadOpenAPISpecsFromEmbedded()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Validation failed: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Raw OpenAPI spec content:\n%s\n", openapiSpecData)
+			// Raw OpenAPI spec content logging removed for embedded FS approach
 			os.Exit(1)
 		}
 
@@ -260,10 +309,10 @@ func main() {
 
 		// For embedded version, always use the embedded spec
 		// Load multiple specs if present
-		docs, err := openapi2mcp.LoadMultipleOpenAPISpecsFromString(openapiSpecData)
+		docs, err := loadOpenAPISpecsFromEmbedded()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Linting failed: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Raw OpenAPI spec content:\n%s\n", openapiSpecData)
+			// Raw OpenAPI spec content logging removed for embedded FS approach
 			os.Exit(1)
 		}
 
@@ -302,10 +351,10 @@ func main() {
 	if len(args) > 0 && args[0] == "filter" {
 		// For embedded version, always use the embedded spec
 		// Load multiple specs if present
-		docs, err := openapi2mcp.LoadMultipleOpenAPISpecsFromString(openapiSpecData)
+		docs, err := loadOpenAPISpecsFromEmbedded()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Filter operation failed: %v\n", err)
-			fmt.Fprintf(os.Stderr, "Raw OpenAPI spec content:\n%s\n", openapiSpecData)
+			// Raw OpenAPI spec content logging removed for embedded FS approach
 			os.Exit(1)
 		}
 
@@ -475,10 +524,10 @@ func main() {
 
 	// For embedded version, load the OpenAPI spec from embedded data
 	// Load multiple specs if present
-	docs, err := openapi2mcp.LoadMultipleOpenAPISpecsFromString(openapiSpecData)
+	docs, err := loadOpenAPISpecsFromEmbedded()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Could not load embedded OpenAPI spec: %v\n", err)
-		fmt.Fprintf(os.Stderr, "Raw OpenAPI spec content:\n%s\n", openapiSpecData)
+		// Raw OpenAPI spec content logging removed for embedded FS approach
 		os.Exit(1)
 	}
 
