@@ -1,129 +1,358 @@
-openapi: 3.0.3
-info:
-  title: Qilin Platform API
-  description: API for Qilin platform monitoring and management
-  version: 1.0.0
-
-servers:
-  - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-    description: Production server
-
-paths:
-  /platform/statMasterStatus:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台master状态统计，正常和异常的数目
-      operationId: getStatMasterStatus
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-      description: qilin数据开发平台master状态统计，正常和异常的数目
-      responses:
-        '200':
-          description: 成功返回Master状态统计
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /platform/statWorkerStatus:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台worker状态统计，正常和异常的数目
-      operationId: getStatWorkerStatus
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-      description: qilin数据开发平台worker状态统计，正常和异常的数目
-      responses:
-        '200':
-          description: 成功返回Worker状态统计
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /platform/statZookeeperStatus:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台zookeeper状态统计，正常和异常的节点数目
-      operationId: getStatZookeeperStatus
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-      description: qilin数据开发平台zookeeper状态统计，正常和异常的节点数目
-      responses:
-        '200':
-          description: 成功返回Zookeeper状态统计
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /platform/statTopCpuWorker:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台cpu使用率top10的worker
-      operationId: getTopCpuWorker
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-      description: qilin数据开发平台cpu使用率top10的worker
-      responses:
-        '200':
-          description: 成功返回CPU使用率Top10 Worker
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /platform/statTopMemWorker:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台内存使用率top10的worker
-      operationId: getTopMemWorker
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-      description: qilin数据开发平台内存使用率top10的worker
-      responses:
-        '200':
-          description: 成功返回内存使用率Top10 Worker
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /platform/statTopLoadWorker:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台负载top10的worker
-      operationId: getTopLoadWorker
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-      description: qilin数据开发平台负载top10的worker
-      responses:
-        '200':
-          description: 成功返回负载Top10 Worker
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /platform/statTopRunningTaskWorker:
-    get:
-      tags:
-        - xsMcp
-      summary: qilin数据开发平台正在运行任务数top10的worker
-      operationId: getTopRunningTaskWorker
-      servers:
-        - url: https://qilin.qihoo.net/qilin-xp-api/api/common-scheduler/mcp/api
-      description: qilin数据开发平台正在运行任务数top10的worker
-      responses:
-        '200':
-          description: 成功返回正在运行任务数Top10 Worker
-          content:
-            application/json:
-              schema:
-                type: object
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://test01.palantir.shrdt.qihoo.net:6010",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "mcp",
+      "description": "可供mcp使用"
+    }
+  ],
+  "paths": {
+    "/ontology/v1/object/getObjectTypes": {
+      "get": {
+        "tags": [
+          "mcp"
+        ],
+        "summary": "获取全部的对象类型列表（GET）",
+        "description": "通过GET方式获取全部的对象类型列表",
+        "operationId": "getObjectTypes",
+        "parameters": [
+          {
+            "name": "sourceType",
+            "in": "query",
+            "description": "用途：manage 管理端 browser 客户端",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "manage"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "description": "名称",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ontologyId",
+            "in": "query",
+            "description": "项目本体ID",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/jsonObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/objects/v1/search": {
+      "post": {
+        "tags": [
+          "mcp"
+        ],
+        "summary": "根据对象类型等条件检索对象及属性",
+        "description": "通过Post方式，根据对象类型等条件（例如请求类型、关键字）检索所有对象及其属性，若搜索多个本体，需要多次查询。",
+        "operationId": "objectsSearch",
+        "parameters": [
+          {
+            "name": "ontologyId",
+            "in": "query",
+            "description": "本体id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "objectType",
+            "in": "query",
+            "description": "objectType",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObjectQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/jsonObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/objects/v1/get": {
+      "get": {
+        "tags": [
+          "mcp"
+        ],
+        "summary": "以扩展边的方式查找对象及属性",
+        "description": "通过 GET 方式，根据输入的对象ID及扩展层数，返回查询到的对象、属性、边",
+        "operationId": "getObject",
+        "parameters": [
+          {
+            "name": "ontologyId",
+            "in": "query",
+            "description": "本体id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "objectId",
+            "in": "query",
+            "description": "对象id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "description": "检索层数",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/jsonObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/objects/v1/set": {
+      "post": {
+        "tags": [
+          "mcp"
+        ],
+        "summary": "根据objectId修改对应的object属性值",
+        "description": "通过 GET 方式，根据输入的对象ID，修改该对象的属性值，可以修改多个属性，多个属性值组成key/value,以json格式传入",
+        "operationId": "setObject",
+        "parameters": [
+          {
+            "name": "ontologyId",
+            "in": "query",
+            "description": "本体id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "objectId",
+            "in": "query",
+            "description": "对象id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "objectType",
+            "in": "query",
+            "description": "对象类型",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "mutateContext",
+            "in": "query",
+            "description": "修改内容",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/jsonObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "jsonObject": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "返回的状态码",
+            "example": "200"
+          },
+          "msg": {
+            "type": "string",
+            "description": "返回失败的详情"
+          },
+          "msgParams": {
+            "type": "array",
+            "description": "返回失败的详情替换值",
+            "items": {
+              "type": "string",
+              "description": "返回失败的详情替换值"
+            }
+          },
+          "result": {
+            "type": "object",
+            "description": "返回的结果数据"
+          }
+        },
+        "description": "接口返回json对象"
+      },
+      "ObjectQueryRequest": {
+        "type": "object",
+        "properties": {
+          "select": {
+            "type": "array",
+            "description": "要查询的字段列表",
+            "items": {
+              "type": "string",
+              "description": "要查询的字段列表"
+            }
+          },
+          "where": {
+            "type": "array",
+            "description": "查询条件列表",
+            "items": {
+              "$ref": "#/components/schemas/SearchCondition"
+            }
+          },
+          "orderBy": {
+            "$ref": "#/components/schemas/SortedCondition"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "分页大小，默认20",
+            "format": "int32"
+          },
+          "offset": {
+            "type": "integer",
+            "description": "分页偏移量，默认0",
+            "format": "int32"
+          },
+          "includeLinks": {
+            "type": "boolean",
+            "description": "是否包含关联数据，默认false"
+          }
+        },
+        "description": "Object查询请求参数"
+      },
+      "SearchCondition": {
+        "type": "object",
+        "properties": {
+          "propertyName": {
+            "type": "string"
+          },
+          "queryOperator": {
+            "type": "string",
+            "enum": [
+              "EQUALS",
+              "NOT_EQUALS",
+              "GREATER_THAN",
+              "LESS_THAN",
+              "GREATER_THAN_OR_EQUALS",
+              "LESS_THAN_OR_EQUALS",
+              "ANY_TEXT",
+              "ALL_TEXT",
+              "NEARBY",
+              "IS_NULL",
+              "IS_NOT_NULL"
+            ]
+          },
+          "conditionType": {
+            "type": "string",
+            "enum": [
+              "AND",
+              "OR"
+            ]
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "description": "查询条件列表"
+      },
+      "SortedCondition": {
+        "type": "object",
+        "properties": {
+          "propertyName": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "ASC",
+              "DESC"
+            ]
+          }
+        },
+        "description": "排序配置"
+      }
+    }
+  }
+}
