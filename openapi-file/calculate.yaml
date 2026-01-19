@@ -1,358 +1,992 @@
-{
-  "openapi": "3.0.1",
-  "info": {
-    "title": "OpenAPI definition",
-    "version": "v0"
-  },
-  "servers": [
-    {
-      "url": "http://test01.palantir.shrdt.qihoo.net:6010",
-      "description": "Generated server url"
-    }
-  ],
-  "tags": [
-    {
-      "name": "mcp",
-      "description": "可供mcp使用"
-    }
-  ],
-  "paths": {
-    "/ontology/v1/object/getObjectTypes": {
-      "get": {
-        "tags": [
-          "mcp"
-        ],
-        "summary": "获取全部的对象类型列表（GET）",
-        "description": "通过GET方式获取全部的对象类型列表",
-        "operationId": "getObjectTypes",
-        "parameters": [
-          {
-            "name": "sourceType",
-            "in": "query",
-            "description": "用途：manage 管理端 browser 客户端",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "manage"
-            }
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "description": "名称",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "ontologyId",
-            "in": "query",
-            "description": "项目本体ID",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/jsonObject"
-                }
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://test01.palantir.shrdt.qihoo.net:6015
+  description: Generated server url
+tags:
+- name: MCP依赖接口
+  description: MCP使用的接口
+paths:
+  /mcp/v1/objects/search:
+    post:
+      tags:
+      - MCP依赖接口
+      summary: 根据对象类型等条件检索对象及属性
+      description: |
+        通过Post方式，根据对象类型等条件（例如请求类型、关键字）检索所有对象及其属性，若搜索多个本体，需要多次查询。查询请求示例：{
+          "code": 200,
+          "data": {
+            "objectTypeId": "1",
+            "name": "Rack",
+            "properties": [
+              {
+                "type": "string",
+                "name": "name"
+              },
+              {
+                "type": "string",
+                "name": "position"
+              },
+              {
+                "type": "int",
+                "name": "idc_id"
               }
-            }
-          }
-        }
-      }
-    },
-    "/objects/v1/search": {
-      "post": {
-        "tags": [
-          "mcp"
-        ],
-        "summary": "根据对象类型等条件检索对象及属性",
-        "description": "通过Post方式，根据对象类型等条件（例如请求类型、关键字）检索所有对象及其属性，若搜索多个本体，需要多次查询。",
-        "operationId": "objectsSearch",
-        "parameters": [
-          {
-            "name": "ontologyId",
-            "in": "query",
-            "description": "本体id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "objectType",
-            "in": "query",
-            "description": "objectType",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ObjectQueryRequest"
+            ],
+            "links": [
+              {
+                "linkName": "in_idc",
+                "linkType": "string",
+                "linkTypeId": "20"
               }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/jsonObject"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/objects/v1/get": {
-      "get": {
-        "tags": [
-          "mcp"
-        ],
-        "summary": "以扩展边的方式查找对象及属性",
-        "description": "通过 GET 方式，根据输入的对象ID及扩展层数，返回查询到的对象、属性、边",
-        "operationId": "getObject",
-        "parameters": [
-          {
-            "name": "ontologyId",
-            "in": "query",
-            "description": "本体id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "objectId",
-            "in": "query",
-            "description": "对象id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "depth",
-            "in": "query",
-            "description": "检索层数",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/jsonObject"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/objects/v1/set": {
-      "post": {
-        "tags": [
-          "mcp"
-        ],
-        "summary": "根据objectId修改对应的object属性值",
-        "description": "通过 GET 方式，根据输入的对象ID，修改该对象的属性值，可以修改多个属性，多个属性值组成key/value,以json格式传入",
-        "operationId": "setObject",
-        "parameters": [
-          {
-            "name": "ontologyId",
-            "in": "query",
-            "description": "本体id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "objectId",
-            "in": "query",
-            "description": "对象id",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "objectType",
-            "in": "query",
-            "description": "对象类型",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "mutateContext",
-            "in": "query",
-            "description": "修改内容",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/jsonObject"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "jsonObject": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "description": "返回的状态码",
-            "example": "200"
-          },
-          "msg": {
-            "type": "string",
-            "description": "返回失败的详情"
-          },
-          "msgParams": {
-            "type": "array",
-            "description": "返回失败的详情替换值",
-            "items": {
-              "type": "string",
-              "description": "返回失败的详情替换值"
-            }
-          },
-          "result": {
-            "type": "object",
-            "description": "返回的结果数据"
-          }
-        },
-        "description": "接口返回json对象"
-      },
-      "ObjectQueryRequest": {
-        "type": "object",
-        "properties": {
-          "select": {
-            "type": "array",
-            "description": "要查询的字段列表",
-            "items": {
-              "type": "string",
-              "description": "要查询的字段列表"
-            }
-          },
-          "where": {
-            "type": "array",
-            "description": "查询条件列表",
-            "items": {
-              "$ref": "#/components/schemas/SearchCondition"
-            }
-          },
-          "orderBy": {
-            "$ref": "#/components/schemas/SortedCondition"
-          },
-          "limit": {
-            "type": "integer",
-            "description": "分页大小，默认20",
-            "format": "int32"
-          },
-          "offset": {
-            "type": "integer",
-            "description": "分页偏移量，默认0",
-            "format": "int32"
-          },
-          "includeLinks": {
-            "type": "boolean",
-            "description": "是否包含关联数据，默认false"
-          }
-        },
-        "description": "Object查询请求参数"
-      },
-      "SearchCondition": {
-        "type": "object",
-        "properties": {
-          "propertyName": {
-            "type": "string"
-          },
-          "queryOperator": {
-            "type": "string",
-            "enum": [
-              "EQUALS",
-              "NOT_EQUALS",
-              "GREATER_THAN",
-              "LESS_THAN",
-              "GREATER_THAN_OR_EQUALS",
-              "LESS_THAN_OR_EQUALS",
-              "ANY_TEXT",
-              "ALL_TEXT",
-              "NEARBY",
-              "IS_NULL",
-              "IS_NOT_NULL"
             ]
           },
-          "conditionType": {
-            "type": "string",
-            "enum": [
-              "AND",
-              "OR"
-            ]
-          },
-          "value": {
-            "type": "string"
-          }
-        },
-        "description": "查询条件列表"
-      },
-      "SortedCondition": {
-        "type": "object",
-        "properties": {
-          "propertyName": {
-            "type": "string"
-          },
-          "direction": {
-            "type": "string",
-            "enum": [
-              "ASC",
-              "DESC"
-            ]
-          }
-        },
-        "description": "排序配置"
-      }
-    }
-  }
-}
+          "message": ""
+        }
+        conditionType：
+            AND,
+            OR
+        direction：
+            ASC, DESC
+        queryOperator：
+            EQUALS,
+            NOT_EQUALS,
+            GREATER_THAN,
+            LESS_THAN,
+            GREATER_THAN_OR_EQUALS,
+            LESS_THAN_OR_EQUALS,
+            ANY_TEXT,
+            ALL_TEXT,
+            NEARBY, // 附近, point_a, point_b
+            IN,(json<string>)
+            NOT_IN,(json<string>)
+            IS_NULL,
+            IS_NOT_NULL,
+      operationId: objectsSearch
+      parameters:
+      - name: ontologyId
+        in: query
+        description: 本体id
+        required: true
+        schema:
+          type: string
+      - name: objectType
+        in: query
+        description: 对象类型
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObjectQueryRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RestResultListObject'
+  /mcp/v1/objects/get/multiple:
+    post:
+      tags:
+      - MCP依赖接口
+      summary: 以扩展边的方式查找多个对象及属性
+      description: 通过 POST 方式、需要查询对象的ID列表以及扩展层数，返回查询到的对象及扩展对象的属性、边
+      operationId: getMultipleObject
+      parameters:
+      - name: ontologyId
+        in: query
+        description: 本体id
+        required: true
+        schema:
+          type: string
+      - name: objectType
+        in: query
+        description: 对象类型
+        required: true
+        schema:
+          type: string
+      - name: depth
+        in: query
+        description: 检索层数
+        required: false
+        schema:
+          type: integer
+          format: int32
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              description: 对象id列表，一次性查询多个对象及属性
+              items:
+                type: string
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RestResultListObject'
+  /mcp/v1/actions/trigger:
+    post:
+      tags:
+      - MCP依赖接口
+      summary: 触发Action
+      description: 根据Action ID和参数映射触发Action执行
+      operationId: trigger
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActionTriggerRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RestResultObject'
+  /mcp/v1/properties:
+    get:
+      tags:
+      - MCP依赖接口
+      summary: 获取对象类型下的属性列表（GET）
+      description: 通过GET方式获取对象类型下的属性列表
+      operationId: getPropertys
+      parameters:
+      - name: propertyName
+        in: query
+        description: 名称
+        required: false
+        schema:
+          type: string
+      - name: ontologyId
+        in: query
+        description: 项目本体ID
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: objectId
+        in: query
+        description: 对象类型ID
+        required: false
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RestResult'
+  /mcp/v1/objects/get:
+    get:
+      tags:
+      - MCP依赖接口
+      summary: 以扩展边的方式查找对象及属性
+      description: 通过 GET 方式，根据输入的对象ID，或者一组对象IDs以逗号分隔(超过10个对象就不建议用此接口)，及扩展层数，返回查询到的对象及扩展对象的属性、边
+      operationId: getObject
+      parameters:
+      - name: ontologyId
+        in: query
+        description: 本体id
+        required: true
+        schema:
+          type: string
+      - name: objectType
+        in: query
+        description: 对象类型
+        required: true
+        schema:
+          type: string
+      - name: objectId
+        in: query
+        description: 对象id
+        required: true
+        schema:
+          type: string
+      - name: depth
+        in: query
+        description: 检索层数
+        required: false
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RestResultListObject'
+  /mcp/v1/objectTypes:
+    get:
+      tags:
+      - MCP依赖接口
+      summary: 获取对象类型列表（GET）
+      description: 通过GET方式获取对象类型列表
+      operationId: getObjectTypes
+      parameters:
+      - name: sourceType
+        in: query
+        description: 用途：manage 管理端 browser 客户端
+        required: false
+        schema:
+          type: string
+          default: manage
+      - name: name
+        in: query
+        description: 名称
+        required: false
+        schema:
+          type: string
+      - name: ontologyId
+        in: query
+        description: 项目本体ID
+        required: false
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RestResult'
+  /mcp/v1/actions:
+    get:
+      tags:
+      - MCP依赖接口
+      summary: 获取动作类型列表（GET）
+      description: 通过GET方式获取动作类型列表
+      operationId: getActions
+      parameters:
+      - name: actionName
+        in: query
+        description: 名称
+        required: false
+        schema:
+          type: string
+      - name: ontologyId
+        in: query
+        description: 项目本体ID
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: objectTypeId
+        in: query
+        description: 对象类型Id
+        required: false
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/RestResultListActionEntity'
+components:
+  schemas:
+    RestResultObject:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 返回的状态码
+          example: "200"
+        msg:
+          type: string
+          description: 返回失败的详情
+        msgParams:
+          type: array
+          description: 返回失败的详情替换值
+          items:
+            type: string
+            description: 返回失败的详情替换值
+        result:
+          type: object
+          description: 返回的结果数据
+    ObjectQueryRequest:
+      type: object
+      properties:
+        select:
+          type: array
+          description: 要查询的字段列表
+          items:
+            type: string
+            description: 要查询的字段列表
+        where:
+          type: array
+          description: 查询条件列表
+          items:
+            $ref: '#/components/schemas/SearchCondition'
+        orderBy:
+          $ref: '#/components/schemas/SortedCondition'
+        limit:
+          type: integer
+          description: "分页大小，默认0 : 查询全部"
+          format: int32
+        offset:
+          type: integer
+          description: 分页偏移量，默认0
+          format: int32
+        includelinkDepth:
+          type: integer
+          description: 关联数据深度，0和1代表不关联数据，2代表扩展1层，以此类推
+          format: int32
+      description: 查询参数
+    SearchCondition:
+      type: object
+      properties:
+        propertyName:
+          type: string
+        queryOperator:
+          type: string
+          enum:
+          - EQUALS
+          - NOT_EQUALS
+          - GREATER_THAN
+          - LESS_THAN
+          - GREATER_THAN_OR_EQUALS
+          - LESS_THAN_OR_EQUALS
+          - ANY_TEXT
+          - ALL_TEXT
+          - NEARBY
+          - IS_NULL
+          - IS_NOT_NULL
+          - IN
+          - NOT_IN
+          - LIKE
+        conditionType:
+          type: string
+          enum:
+          - AND
+          - OR
+        value:
+          type: string
+      description: 查询条件列表
+    SortedCondition:
+      type: object
+      properties:
+        propertyName:
+          type: string
+        direction:
+          type: string
+          enum:
+          - ASC
+          - DESC
+      description: 排序配置
+    RestResultListObject:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 返回的状态码
+          example: "200"
+        msg:
+          type: string
+          description: 返回失败的详情
+        msgParams:
+          type: array
+          description: 返回失败的详情替换值
+          items:
+            type: string
+            description: 返回失败的详情替换值
+        result:
+          type: array
+          description: 返回的结果数据
+          items:
+            type: object
+    ActionMapping:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 映射ID
+        field:
+          type: string
+          description: 字段标识
+        fieldName:
+          type: string
+          description: 字段名称
+        value:
+          type: object
+          description: "字段值，可以是基本数据类型（字符串、整数、长整数、双精度浮点数、布尔值）或复杂对象。对于基本类型直接传值，对于复杂类\
+            型传递对象。例如：修改cpu属性为32时，直接传value: 32即可，不需要包装成{\"value\": 32}。"
+          anyOf:
+          - type: string
+          - type: integer
+            format: int32
+          - type: integer
+            format: int64
+          - type: number
+            format: double
+          - type: boolean
+          - type: object
+        paramType:
+          type: string
+          description: "参数类型：input-输入参数, fixed-固定参数, reference-引用参数"
+      description: Action参数映射
+    ActionTriggerRequest:
+      type: object
+      properties:
+        actionId:
+          type: integer
+          description: Action ID
+          format: int64
+        actionName:
+          type: string
+          description: Action 名称
+        objectTypeId:
+          type: integer
+          description: 对象类型ID
+          format: int64
+        objectId:
+          type: string
+          description: 对象ID
+        mappings:
+          type: array
+          description: "action参数映射列表,待修改的对象属性，注意字段必须为对象的属性字段，function类型(action的operation值\
+            为function)的action不用"
+          items:
+            $ref: '#/components/schemas/ActionMapping'
+        functions:
+          type: array
+          description: "调用function类型(action的operation值为function)的action专用，其他类型不用,function配\
+            置列表"
+          items:
+            $ref: '#/components/schemas/FunctionConfig'
+      description: Action触发请求参数
+    FunctionConfig:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 函数名称
+        filePath:
+          type: string
+          description: 文件路径
+        params:
+          type: array
+          description: 参数列表
+          items:
+            $ref: '#/components/schemas/FunctionParam'
+      description: 函数配置
+    FunctionParam:
+      type: object
+      properties:
+        field:
+          type: string
+          description: 字段名
+        fieldName:
+          type: string
+          description: 字段显示名
+        value:
+          type: string
+          description: 参数值
+        paramType:
+          type: string
+          description: 参数类型
+      description: 函数参数
+    RestResult:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 返回的状态码
+          example: "200"
+        msg:
+          type: string
+          description: 返回失败的详情
+        msgParams:
+          type: array
+          description: 返回失败的详情替换值
+          items:
+            type: string
+            description: 返回失败的详情替换值
+        result:
+          type: object
+          description: 返回的结果数据
+    ActionEntity:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键ID
+          format: int64
+        code:
+          type: string
+          description: 唯一标识
+        aliases:
+          type: string
+          description: "别名: 中文名称"
+        icon:
+          type: string
+          description: 图标
+        iconColor:
+          type: string
+          description: 图标颜色
+        description:
+          type: string
+          description: 描述
+        status:
+          type: integer
+          description: 状态：0-禁用，1-启用
+          format: int32
+        createdTime:
+          type: string
+          description: 创建时间
+          format: date-time
+        updatedTime:
+          type: string
+          description: 更新时间
+          format: date-time
+        creatorId:
+          type: integer
+          description: 创建人id
+          format: int64
+        creatorName:
+          type: string
+          description: 创建人名称
+        updateId:
+          type: integer
+          description: 更新人id
+          format: int64
+        updateName:
+          type: string
+          description: 修改人名称
+        ontologyId:
+          type: integer
+          description: 项目本体Id
+          format: int64
+        actionName:
+          type: string
+          description: 名称：英文标识
+        operation:
+          type: string
+          description: "操作类型：create, read, update, delete, function"
+        functionIds:
+          type: string
+          description: "函数Id，多个用,逗号隔开"
+        actionRuleList:
+          type: array
+          description: 动作的规则列表
+          items:
+            $ref: '#/components/schemas/ActionRuleEntity'
+        objectTypeList:
+          type: array
+          description: 对象类型列表
+          items:
+            $ref: '#/components/schemas/ActionRuleDTO'
+      description: 动作类型类
+    ActionRuleDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键ID
+          format: int64
+        code:
+          type: string
+          description: 唯一标识
+        aliases:
+          type: string
+          description: "别名: 中文名称"
+        icon:
+          type: string
+          description: 图标
+        iconColor:
+          type: string
+          description: 图标颜色
+        description:
+          type: string
+          description: 描述
+        status:
+          type: integer
+          description: 状态：0-禁用，1-启用
+          format: int32
+        createdTime:
+          type: string
+          description: 创建时间
+          format: date-time
+        updatedTime:
+          type: string
+          description: 更新时间
+          format: date-time
+        creatorId:
+          type: integer
+          description: 创建人id
+          format: int64
+        creatorName:
+          type: string
+          description: 创建人名称
+        updateId:
+          type: integer
+          description: 更新人id
+          format: int64
+        updateName:
+          type: string
+          description: 修改人名称
+        ontologyId:
+          type: integer
+          description: 项目本体Id
+          format: int64
+        ontologyName:
+          type: string
+          description: 本体名称
+        name:
+          type: string
+          description: 名称：英文标识
+        runStatus:
+          type: integer
+          description: "运行状态： 0, \"提交成功\"  1, \"运行中\" 2, \"准备暂停\" 3, \"已暂停\" 4, \"\
+            准备停止\" 5, \"已停止\" 6, \"失败\" 7, \"成功\" 8, \"需要容错\" 9, \"被杀死\" 10, \"等待线\
+            程\" 11, \"等待依赖完成\"';"
+          format: int32
+        imgUrl:
+          type: string
+          description: 浏览器中对象的图标
+        apiName:
+          type: string
+          description: API名称
+        datasourceId:
+          type: integer
+          description: 关联数据源Id
+          format: int64
+        dbName:
+          type: string
+          description: 关联数据库名称
+        tableName:
+          type: string
+          description: 关联表名称
+        primaryField:
+          type: string
+          description: 主键字段
+        titleField:
+          type: string
+          description: 标题键字段
+        rid:
+          type: string
+          description: 记录ID
+        dataUpdatedTime:
+          type: string
+          description: 数据更新时间
+          format: date-time
+        propertyList:
+          type: array
+          description: 对象类型下的属性
+          items:
+            $ref: '#/components/schemas/PropertyEntity'
+        linkTypeList:
+          type: array
+          description: 对象类型下的连接关系
+          items:
+            $ref: '#/components/schemas/LinkTypeEntity'
+        propertyCount:
+          type: integer
+          description: 属性个数
+          format: int32
+        objectCount:
+          type: integer
+          description: 对象个数
+          format: int64
+        actionCount:
+          type: integer
+          description: 动作个数
+          format: int32
+        linkCount:
+          type: integer
+          description: 关联个数
+          format: int32
+        sort:
+          type: integer
+          description: 排序字段
+          format: int64
+        propertyNameMap:
+          type: object
+          additionalProperties:
+            type: string
+        linkTypeMap:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/LinkTypeEntity'
+        titleKey:
+          type: string
+        actionId:
+          type: integer
+          description: 动作Id
+          format: int64
+        operation:
+          type: string
+          description: "操作类型：create, read, update, delete, function"
+        actionMappings:
+          type: string
+          description: "动作映射数组: [{}]"
+      description: 对象类型列表
+    ActionRuleEntity:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键ID
+          format: int64
+        ontologyId:
+          type: integer
+          description: 项目本体Id
+          format: int64
+        actionId:
+          type: integer
+          description: 动作Id
+          format: int64
+        methodName:
+          type: string
+          description: 函数中的方法名称
+        filePath:
+          type: string
+          description: 方法对应的文件路径
+        objectId:
+          type: integer
+          description: 对象类型Id
+          format: int64
+        operation:
+          type: string
+          description: "操作类型：create, read, update, delete, function"
+        actionMappings:
+          type: string
+          description: "动作映射数组: [{}]"
+      description: 动作类型规则的类
+    LinkTypeEntity:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键ID
+          format: int64
+        code:
+          type: string
+          description: 唯一标识
+        aliases:
+          type: string
+          description: "别名: 中文名称"
+        icon:
+          type: string
+          description: 图标
+        iconColor:
+          type: string
+          description: 图标颜色
+        description:
+          type: string
+          description: 描述
+        status:
+          type: integer
+          description: 状态：0-禁用，1-启用
+          format: int32
+        createdTime:
+          type: string
+          description: 创建时间
+          format: date-time
+        updatedTime:
+          type: string
+          description: 更新时间
+          format: date-time
+        creatorId:
+          type: integer
+          description: 创建人id
+          format: int64
+        creatorName:
+          type: string
+          description: 创建人名称
+        updateId:
+          type: integer
+          description: 更新人id
+          format: int64
+        updateName:
+          type: string
+          description: 修改人名称
+        ontologyId:
+          type: integer
+          description: 项目本体Id
+          format: int64
+        name:
+          type: string
+          description: 名称：英文标识
+        sourceId:
+          type: integer
+          description: 源对象类型id
+          format: int64
+        targetId:
+          type: integer
+          description: 目标对象类型id
+          format: int64
+        sourcePropertyId:
+          type: integer
+          description: 源对象类型的属性id
+          format: int64
+        targetPropertyId:
+          type: integer
+          description: 目标对象类型的属性id
+          format: int64
+        foreignPropertyId:
+          type: integer
+          description: 外键的属性id
+          format: int64
+        sourceAliases:
+          type: string
+          description: 源对象类型别名
+        targetAliases:
+          type: string
+          description: 目标对象类型别名
+        sourceField:
+          type: string
+          description: 源对象类型字段
+        targetField:
+          type: string
+          description: 目标对象类型字段
+        linkType:
+          type: integer
+          description: 类型： 1 一对一 2 一对多 3 多对一
+          format: int32
+        sourceIcon:
+          type: string
+          description: 源对象图标
+        sourceIconColor:
+          type: string
+          description: 源对象图标颜色
+        targetIcon:
+          type: string
+          description: 目标对象图标
+        targetIconColor:
+          type: string
+          description: 目标对象图标颜色
+      description: link连线类
+    PropertyEntity:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键ID
+          format: int64
+        code:
+          type: string
+          description: 唯一标识
+        aliases:
+          type: string
+          description: "别名: 中文名称"
+        icon:
+          type: string
+          description: 图标
+        iconColor:
+          type: string
+          description: 图标颜色
+        description:
+          type: string
+          description: 描述
+        status:
+          type: integer
+          description: 状态：0-禁用，1-启用
+          format: int32
+        createdTime:
+          type: string
+          description: 创建时间
+          format: date-time
+        updatedTime:
+          type: string
+          description: 更新时间
+          format: date-time
+        creatorId:
+          type: integer
+          description: 创建人id
+          format: int64
+        creatorName:
+          type: string
+          description: 创建人名称
+        updateId:
+          type: integer
+          description: 更新人id
+          format: int64
+        updateName:
+          type: string
+          description: 修改人名称
+        ontologyId:
+          type: integer
+          description: 项目本体Id
+          format: int64
+        propertyName:
+          type: string
+          description: 属性名称：英文标识
+        objectId:
+          type: integer
+          description: 对象类型Id
+          format: int64
+        sourceField:
+          type: string
+          description: 来源字段
+        targetField:
+          type: string
+          description: 属性
+        keyType:
+          type: string
+          description: 属性类型
+        sourceType:
+          type: string
+          description: 来源字段类型
+        apiName:
+          type: string
+          description: API名称
+        valueFormat:
+          type: string
+          description: 值格式化
+        conditionFormat:
+          type: string
+          description: "条件格式化配置: \"[test1,test2]\""
+        conditionNum:
+          type: integer
+          description: 条件数量
+          format: int32
+        primarySign:
+          type: boolean
+          description: 是否是主键字段：true 是主键 false 不是主键
+        titleSign:
+          type: boolean
+          description: 是否标题键字段：true 是标题建 false 不是标题建
+        objPrimaryField:
+          type: string
+          description: 主键字段
+        objTitleField:
+          type: string
+          description: 标题键字段
+      description: 属性类
+    RestResultListActionEntity:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 返回的状态码
+          example: "200"
+        msg:
+          type: string
+          description: 返回失败的详情
+        msgParams:
+          type: array
+          description: 返回失败的详情替换值
+          items:
+            type: string
+            description: 返回失败的详情替换值
+        result:
+          type: array
+          description: 返回的结果数据
+          items:
+            $ref: '#/components/schemas/ActionEntity'
