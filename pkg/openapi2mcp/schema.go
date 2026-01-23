@@ -101,7 +101,12 @@ func extractProperty(s *openapi3.SchemaRef) map[string]any {
 	// Type, format, description, enum, default, example
 	if val.Type != nil && len(*val.Type) > 0 {
 		// Use the first type if multiple types are specified
-		prop["type"] = (*val.Type)[0]
+		// Only set type if we haven't defined a polymorphic type (anyOf/oneOf) which might conflict
+		_, hasAnyOf := prop["anyOf"]
+		_, hasOneOf := prop["oneOf"]
+		if !hasAnyOf && !hasOneOf {
+			prop["type"] = (*val.Type)[0]
+		}
 	}
 	if val.Format != "" {
 		prop["format"] = val.Format
